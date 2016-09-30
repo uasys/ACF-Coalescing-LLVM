@@ -1,0 +1,20 @@
+file /home/taylor/git/coalescingsa-llvm/wali-opennwa-4.1/SConstruct,line 151:
+	Configure(confdir = .sconf_temp)
+scons: Configure: Checking for C++ library boost_filesystem... 
+.sconf_temp/conftest_0.cpp <-
+  |
+  |
+  |
+  |int
+  |main() {
+  |  
+  |return 0;
+  |}
+  |
+/usr/bin/g++ -o .sconf_temp/conftest_0.o -c -g -ggdb -Wall -O2 -Wextra -Wformat=2 -Winit-self -Wunused -Wfloat-equal -Wundef -Wpointer-arith -Wcast-align -Wwrite-strings -Wconversion -Woverloaded-virtual -fdiagnostics-show-option -ISource -I/home/taylor/git/coalescingsa-llvm/boost .sconf_temp/conftest_0.cpp
+/usr/bin/g++ -o .sconf_temp/conftest_0 .sconf_temp/conftest_0.o -lboost_filesystem
+/usr/bin/ld: cannot find -lboost_filesystem
+collect2: error: ld returned 1 exit status
+scons: Configure: no
+
+

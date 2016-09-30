@@ -1,0 +1,1 @@
+add_library(MemoryCoalescing MODULE InstructionMixAnalysis.cpp)
