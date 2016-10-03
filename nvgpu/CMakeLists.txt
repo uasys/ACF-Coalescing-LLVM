@@ -1,1 +1,1 @@
-add_library(MemoryCoalescing MODULE InstructionMixAnalysis.cpp)
+add_library(GpuAnalysis MODULE InstructionMixAnalysis.cpp)
