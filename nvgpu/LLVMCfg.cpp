@@ -8,7 +8,17 @@ LLVMCFG::LLVMCFG(Function *f) {
   for(auto b = f->begin(), e = f->end(); b != e; ++b) {
     for(auto i = b->begin(), e = b->end(); i != e; ++i) {
       Instruction *iPtr = &*i;
-      nodes[iPtr] = new LLVMCFGNode(iPtr);
+      for(auto b = f->begin(), e = f->end(); b != e; ++b) {
+        for(auto val = b->begin(), e = b->end(); val != e; ++val) {
+          Value *vPtr = &*val;
+          nodes[iPtr][vPtr] = new LLVMCFGNode(iPtr,vPtr);
+        }
+      }
+      // Include function parameters as tracked values
+      for(auto val = f->arg_begin(), e = f->arg_end(); v != e; ++v) {
+          Value *vPtr = &*val;
+          nodes[iPtr][vPtr] = new LLVMCFGNode(iPtr,vPtr);
+      }
     }
   }
 
@@ -18,10 +28,6 @@ LLVMCFG::LLVMCFG(Function *f) {
       Instruction *cur = &*i;
       auto next = i;
       ++next;
-      if(next != b->end())
-        edges.insert(new LLVMCFGEdge(getNode(cur),getNode(&*(next)),getWeightFn(cur)));
-      else for(auto s=succ_begin(&*b), e=succ_end(&*b); s!=e; ++s) {
-        edges.insert(new LLVMCFGEdge(getNode(&*i),getNode(&*(s->begin())),getWeightFn(cur)));
       }
     }
   }
@@ -31,19 +37,30 @@ LLVMCFG::LLVMCFG(Function *f) {
     for(auto i = b->begin(), e = b->end(); i != e; ++i) {
       if(auto CI=dyn_cast<CallInst>(i)) {
         if(auto F=CI->getCalledFunction())
-          edges.insert(new LLVMCFGEdge(getNode(&*i), getCfgFor(F), getWeightFn(&*i), getMergeFn(CI)));
+          edges.insert(new LLVMCFGEdge(getNode(&*i), getCfgFor(F), getWeightFn(&*i)));
       }
     }
   }
 
   // Setup entry and exit nodes
-  this->entry = getNode(&*(f->getEntryBlock().begin()));
+  this->entry = new LLVMCFGNode();
   this->exit = new LLVMCFGNode();
+
+  Instruction *entry = &*(f->getEntryBlock().begin());
 
   for(auto b = f->begin(), e = f->end(); b != e; ++b) {
     for(auto i = b->begin(), e = b->end(); i != e; ++i) {
-      if(auto ret = dyn_cast<ReturnInst>(i))
-        edges.insert(new LLVMCFGEdge(getNode(ret),exit,getWeightIdFn()));
+      edges.insert(new LLVMCFGEdge(this->entry, getNode(entry, &*i)));
+
+  for(auto b = f->begin(), e = f->end(); b != e; ++b) {
+    for(auto i = b->begin(), e = b->end(); i != e; ++i) {
+      if(auto ret = dyn_cast<ReturnInst>(i)) {
+        for(auto b = f->begin(), e = f->end(); b != e; ++b) {
+          for(auto v = b->begin(), e = b->end(); v != e; ++v) {
+            edges.insert(new LLVMCFGEdge(getNode(ret, &*v),exit,getWeightIdFn()));
+          }
+        }
+      }
     }
   }
 }

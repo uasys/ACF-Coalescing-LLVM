@@ -30,6 +30,7 @@ seme_elem_t ThreadTaintCFG::getWeightFn(Instruction *i) const {
         // Ignore functions for which we don't have bodies
     }
   }
+  return new TaintSemElem();
 }
 
 merge_fn_t getMergeFn(CallInst *CI) const {

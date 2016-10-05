@@ -5,202 +5,126 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/Support/Debug.h"
-#include <iostream>
 #include "llvm/Support/raw_ostream.h"
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 
-
-#include "wali/Common.hpp"
-#include "wali/wpds/WPDS.hpp"
-#include "wali/wfa/WFA.hpp"
-#include "wali/KeySource.hpp"
-
-#include "Cfg.h"
-
 #include <unordered_map>
+#include <queue>
 #include <utility>
 
 using namespace std;
 using namespace llvm;
-using namespace wali;
 
 #define DEBUG_TYPE "threaddep"
 
 namespace {
 
-  class LLVMSource : public KeySource
-  {
-    public:
-      LLVMSource( Instruction *i): inst(i) {}
-
-      bool equal(KeySource* rhs) {
-        LLVMSource *lsrc = (LLVMSource*) rhs;
-        return lsrc->inst == inst;
-      }
-
-      size_t hash() const {
-          return (size_t) inst;
-      }
-
-      std::ostream& print( std::ostream& o ) const {
-          if(inst->hasName())
-              o << inst->getName().str();
-          else
-              o << inst;
-      }
-
-      Instruction *getInst() const { return inst; }
-    private:
-
-      Instruction *inst;
-  };
-
-  class ThreadDependent : public SemElem {
-    public:
-      ThreadDependent(bool b) : dependent(b) {}
-      virtual ~ThreadDependent() {}
-      sem_elem_t one() const { return new ThreadDependent(true); }
-      sem_elem_t zero() const { return new ThreadDependent(false); }
-      sem_elem_t extend(SemElem * rhs) {
-        ThreadDependent *td = static_cast<ThreadDependent*>(rhs);
-        return new ThreadDependent(dependent && td->dependent);
-      }
-      sem_elem_t combine(SemElem * rhs) {
-        ThreadDependent *td = static_cast<ThreadDependent*>(rhs);
-        return new ThreadDependent(dependent || td->dependent);
-      }
-      bool equal(SemElem *rhs) const {
-        ThreadDependent *td = static_cast<ThreadDependent*>(rhs);
-        return td->dependent == dependent;
-      }
-      ostream& print(ostream& o) const {
-          return (dependent) ? o << "Propagate" : o << "Constant";
-      }
-      bool isDependent() const { return dependent; }
-    protected:
-      bool dependent;
-  };
-
-  class ThreadDependence : public ModulePass {
+  class ThreadDependence : public FunctionPass {
   public:
     static char ID;
-    ThreadDependence() : ModulePass(ID) {}
-    bool runOnModule(Module &M);
-    void generateKeys(Module& M);
-    void generateRules(Module& M, wpds::WPDS& Wpds);
-    bool isThreadDependent(wpds::WPDS& Wpds, Instruction *inst);
-
-    wali::Key& programKey() { return progKey; }
-    wali::Key& threadIDKey() { return threadKey; }
-    wali::Key& acceptKey() { return threadKey; }
+    ThreadDependence() : FunctionPass(ID) {}
+    bool runOnFunction(Function &F);
   private:
-    unordered_map<Instruction *,wali::Key> keys;
-    wali::Key& getKey(Instruction *inst);
-    wali::Key progKey, threadKey, accept;
+    void update(Value *v, bool newVal);
+    bool isDependent(Value *v);
+    queue<Value *> worklist;
+    unordered_map<Value *,bool> taint;
   };
 } // End anonymous namespace
 
 
-bool ThreadDependence::runOnModule(Module &M) {
-  DEBUG(errs() << "Hello World\n");
-  wpds::WPDS Wpds;
-  generateKeys(M);
-  generateRules(M, Wpds);
-  Wpds.print(std::cout);
+bool ThreadDependence::runOnFunction(Function &F) {
+  taint.clear();
 
-  for(auto f = M.begin(), e = M.end(); f != e; ++f) {
-    for(auto b = f->begin(), e = f->end(); b != e; ++b) {
-      for(auto i = b->begin(), e = b->end(); i != e; ++i) {
-        if(isThreadDependent(Wpds, &*i));
-          errs() << *i << " is Thread-Dependent\n";
-      }
+  // Initialize ourselves
+  for(auto v=F.arg_begin(),e=F.arg_end(); v!=e; ++v)
+    taint[&*v]=false; // Kernel parameters aren't tainted
+
+  // Everyone gets one look
+  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
+    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+      worklist.push(&*i);
     }
   }
 
-}
+  while(!worklist.empty()) {
+    Value *v = worklist.front();
+    worklist.pop();
 
-void ThreadDependence::generateKeys(Module &M) {
-  progKey = wali::getKey("program");
-  threadKey = wali::getKey("threadIdx");
-  accept = wali::getKey("accept");
-  for(auto f = M.begin(), e = M.end(); f != e; ++f) {
-    for(auto b = f->begin(), e = f->end(); b != e; ++b) {
-      for(auto i = b->begin(), e = b->end(); i != e; ++i) {
-        Instruction *iPtr = &*i;
-        keys.insert(make_pair(iPtr,wali::getKey(new LLVMSource(iPtr))));
-      }
+    update(v, isDependent(v));
+  }
+
+  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
+    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+      errs() << (taint[&*i] ? "Thread-Dependent" : "Thread-Constant ") << " - ";
+      i->dump();
+      errs() << "\n";
     }
   }
-}
 
-void ThreadDependence::generateRules(Module &M, wpds::WPDS& Wpds) {
-  Key& progKey = programKey();
-  sem_elem_t one = new ThreadDependent(true);
-  for(auto f = M.begin(), e = M.end(); f != e; ++f) {
-    for(auto b = f->begin(), e = f->end(); b != e; ++b) {
-      for(auto i = b->begin(), e = b->end(); i != e; ++i) {
-        Key& instKey = getKey(&*i);
-
-        // Propagate an instruction's operands
-        for(auto op = i->op_begin(), e = i->op_end(); op != e; ++op) {
-          if(auto op_inst = dyn_cast<Instruction>(op))
-            Wpds.add_rule(progKey, getKey(op_inst), progKey, instKey, one);
-        }
-
-        // Handle PHINode incoming conditions
-        if(auto phi = dyn_cast<PHINode>(i)) {
-            // TODO: Dependent on incoming branch conditions if not from this block
-        }
-
-        // Handle Function call conditions
-        if(auto call = dyn_cast<CallInst>(i)) {
-          Function *callee = call->getCalledFunction();
-          if(!callee) {
-            // TODO: Handle indirect calls optimistically or soundly
-          } else {
-            switch(callee->getIntrinsicID()) {
-              case Intrinsic::nvvm_read_ptx_sreg_tid_x:
-              case Intrinsic::nvvm_read_ptx_sreg_tid_y:
-              case Intrinsic::nvvm_read_ptx_sreg_tid_z:
-              case Intrinsic::nvvm_read_ptx_sreg_laneid:
-                Wpds.add_rule(progKey, threadIDKey(), progKey, instKey, one);
-              break;
-              case Intrinsic::not_intrinsic:
-                //TODO: Connect args to formals
-                //TODO: Connect returns to this instruction
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-bool ThreadDependence::isThreadDependent(wpds::WPDS& Wpds, Instruction *inst) {
-  wfa::WFA query;
-  query.addTrans(programKey(), threadIDKey(), accept, new ThreadDependent(true));
-  query.set_initial_state(programKey());
-  query.add_final_state(acceptKey());
-
-  wfa::WFA answer;
-  Wpds.poststar(query, answer);
-
-  answer.print_dot( std::cout , true);
-  wfa::Trans t;
-  if(answer.find(programKey(), getKey(inst), accept, t)) {
-      ThreadDependent *td = static_cast<ThreadDependent*>(&*t.weight());
-      return td->isDependent();
-  }
   return false;
 }
 
-Key& ThreadDependence::getKey(Instruction *inst) {
-    auto it = keys.find(inst);
-    return it->second;
+void ThreadDependence::update(Value *v, bool newVal) {
+  bool oldVal = taint[v];
+  taint[v] = newVal;
+  if(newVal != oldVal) {
+    errs() << "Update " << oldVal << "=>" << newVal << " for ";
+    v->dump();
+    errs() << "\n";
+
+    for(auto user=v->user_begin(),e=v->user_end(); user!=e; ++user) {
+      errs() << "| Queued: ";
+      user->dump();
+      errs() << "\n";
+      worklist.push(*user);
+    }
+  }
+  if(auto CI=dyn_cast<CallInst>(v)) {
+    if(auto F=CI->getCalledFunction()) {
+      auto arg=CI->arg_begin();
+      for(auto param=F->arg_begin(),e=F->arg_end(); param!=e; ++param) {
+        // Forward arguments to parameters ( || loses context sensitivity)
+        update(&*param, taint[&*param] || taint[arg->getUser()]);
+        ++arg;
+      }
+    }
+  }
 }
+
+bool ThreadDependence::isDependent(Value *v) {
+  if(auto user=dyn_cast<User>(v)) {
+    for(auto op=user->op_begin(),e=user->op_end(); op!=e; ++op) {
+      if(taint[op->get()])
+        return true;
+    }
+  }
+
+  // Special-case PHI Nodes
+  if(auto PHI=dyn_cast<PHINode>(v)) {
+    // If any branch came here on a thread-dependent condition, we're thread dependent
+  }
+
+  // Calls may reference the threadIdx
+  if(auto CI=dyn_cast<CallInst>(v)) {
+    if(auto F=CI->getCalledFunction()) {
+      switch(F->getIntrinsicID()) {
+        case Intrinsic::nvvm_read_ptx_sreg_tid_x:
+        case Intrinsic::nvvm_read_ptx_sreg_tid_y:
+        case Intrinsic::nvvm_read_ptx_sreg_tid_z:
+        case Intrinsic::nvvm_read_ptx_sreg_laneid:
+          return true;
+        default:
+          break;
+      }
+    }
+  }
+
+  return false;
+}
+
 
 char ThreadDependence::ID = 0;
 static RegisterPass<ThreadDependence> X("threaddep", "Flags thread-dependent values",

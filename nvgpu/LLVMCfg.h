@@ -17,13 +17,16 @@ using namespace wali;
     private:
       bool fake;
       Instruction *instruction;
+      Value *value;
     public:
-      LLVMCFGNode(Instruction *i) : instruction(i), fake(false) {}
+      LLVMCFGNode(Instruction *i, Value *v) : instruction(i), value(v), fake(false) {}
       LLVMCFGNode() : fake(true) {
         instruction = (Instruction *) ((size_t) rand());
+        value = (value *) ((size_t) rand());
       }
       int getId() const { return *((int*) &instruction); }
       Instruction *getInst() const { return instruction; }
+      Value *getValue() const { return value; }
   };
 
   class LLVMCFGEdge : public CFGEdge {
@@ -41,10 +44,8 @@ using namespace wali;
       bool isCall() const { return callee == nullptr; }
 
       sem_elem_t getWeight() const { return weightFn; }
-      merge_fn_t getMergeFn() const { return mergeFn; }
     private:
       sem_elem_t weightFn;
-      merge_fn_t mergeFn;
   };
 
   class LLVMCFG : public CFG {
@@ -52,16 +53,15 @@ using namespace wali;
       Function *func;
       CFGNode* entry;
       CFGNode* exit;
-      unordered_map<Instruction *, CFGNode *> nodes;
+      unordered_map<Instruction *, unordered_map<Value *, CFGNode *>> nodes;
       set<CFGEdge *> edges;
     public:
       LLVMCFG(Function * f);
       const set<CFGEdge *>& getEdges() const { return edges; }
-      CFGNode *getNode(Instruction * i) const { return nodes.find(i)->second; }
+      CFGNode *getNode(Instruction *i, Value *v) const { return nodes[i][v]; }
 
-      virtual sem_elem_t getWeightFn(Instruction *i) const;
+      virtual unordered_map<Value *, sem_elem_t> getWeightFn(Instruction *i) const;
       virtual sem_elem_t getWeightIdFn() const;
-      virtual merge_fn_t getMergeFn(CallInst *CI) const;
       virtual LLVMCFG* getCfgFor(Function *) const;
   };
 
