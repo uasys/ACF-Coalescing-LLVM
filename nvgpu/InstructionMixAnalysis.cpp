@@ -3,6 +3,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Instruction.h"
+#include "llvm/IR/CFG.h"
 #include "llvm/Support/Debug.h"
 #include <iostream>
 #include "llvm/Support/raw_ostream.h"
@@ -15,6 +16,8 @@
 #include "wali/wpds/WPDS.hpp"
 #include "wali/wfa/WFA.hpp"
 #include "wali/KeySource.hpp"
+
+#include "Cfg.h"
 
 #include <unordered_map>
 #include <utility>
@@ -75,6 +78,7 @@ namespace {
       ostream& print(ostream& o) const {
           return (dependent) ? o << "Propagate" : o << "Constant";
       }
+      bool isDependent() const { return dependent; }
     protected:
       bool dependent;
   };
@@ -97,6 +101,7 @@ namespace {
     wali::Key progKey, threadKey, accept;
   };
 } // End anonymous namespace
+
 
 bool ThreadDependence::runOnModule(Module &M) {
   DEBUG(errs() << "Hello World\n");
@@ -176,15 +181,20 @@ void ThreadDependence::generateRules(Module &M, wpds::WPDS& Wpds) {
 
 bool ThreadDependence::isThreadDependent(wpds::WPDS& Wpds, Instruction *inst) {
   wfa::WFA query;
-  query.addTrans(programKey(), getKey(inst), accept, new ThreadDependent(true));
+  query.addTrans(programKey(), threadIDKey(), accept, new ThreadDependent(true));
   query.set_initial_state(programKey());
   query.add_final_state(acceptKey());
 
   wfa::WFA answer;
-  Wpds.prestar(query, answer);
-  answer.print( std::cout );
+  Wpds.poststar(query, answer);
+
+  answer.print_dot( std::cout , true);
   wfa::Trans t;
-  return query.find(programKey(), getKey(inst), accept, t);
+  if(answer.find(programKey(), getKey(inst), accept, t)) {
+      ThreadDependent *td = static_cast<ThreadDependent*>(&*t.weight());
+      return td->isDependent();
+  }
+  return false;
 }
 
 Key& ThreadDependence::getKey(Instruction *inst) {
