@@ -1,4 +1,3 @@
-#include "llvm/Pass.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/BasicBlock.h"
@@ -12,8 +11,8 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/DataLayout.h"
 
+#include "ThreadValueAnalysis.h"
 #include "ThreadDepAnalysis.h"
-
 #include <map>
 
 using namespace std;
@@ -22,27 +21,6 @@ using namespace gpucheck;
 
 #define DEBUG_TYPE "threadval"
 
-namespace gpucheck {
-
-  class ThreadValueAnalysis : public FunctionPass {
-    public:
-      static char ID;
-      ThreadValueAnalysis() : FunctionPass(ID) {}
-      void getAnalysisUsage(AnalysisUsage &AU) const {
-        AU.setPreservesAll();
-        AU.addRequired<ThreadDependence>();
-      }
-      bool runOnFunction(Function &F);
-      APInt *evaluateForThreadIdx(Value *v, int threadID);
-      APInt *threadDepPortion(Value *v, int threadID);
-    private:
-      DataLayout *DL;
-      ThreadDependence *TD;
-      const APInt* evaluateForThreadIdx(Value *v, APInt threadID, map<Value *, APInt>& knownValues);
-      const APInt* threadDepPortion(Value *v, APInt threadID, map<Value *, APInt>& knownPortions, map<Value *, APInt>& knownValues, ThreadDependence* td);
-  };
-
-}
 
 bool ThreadValueAnalysis::runOnFunction(Function &F) {
   DL = new DataLayout(F.getParent());
@@ -208,6 +186,66 @@ const APInt* ThreadValueAnalysis::evaluateForThreadIdx(Value *v, APInt threadID,
     return &known.find(v)->second;
   }
 
+  if(auto CMP=dyn_cast<CmpInst>(v)) {
+    const APInt *left = evaluateForThreadIdx(CMP->getOperand(0), threadID, known);
+    const APInt *right = evaluateForThreadIdx(CMP->getOperand(1), threadID, known);
+    if(left == nullptr || right == nullptr)
+      return nullptr;
+
+    bool valid = false;
+    bool out = false;
+    switch(CMP->getPredicate()) {
+      case CmpInst::Predicate::ICMP_EQ:
+        out = left->eq(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_NE:
+        out = left->ne(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_ULT:
+        out = left->ult(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_ULE:
+        out = left->ule(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_UGT:
+        out = left->ult(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_UGE:
+        out = left->ule(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_SLT:
+        out = left->ult(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_SLE:
+        out = left->ule(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_SGT:
+        out = left->ult(*right);
+        valid = true;
+        break;
+      case CmpInst::Predicate::ICMP_SGE:
+        out = left->ule(*right);
+        valid = true;
+        break;
+      default:
+        break;
+    }
+    if(valid) {
+      // Construct a boolean APInt
+      known.insert(make_pair(v, out ? APInt(1,1,false) : APInt(1,0,false)));
+      return &known.find(v)->second;
+    }
+    return nullptr;
+  }
+
   // We don't know
   return nullptr;
 }
@@ -232,6 +270,12 @@ const APInt* ThreadValueAnalysis::threadDepPortion(Value *v, APInt threadID, map
       return &known.find(v)->second;
     }
   }
+
+  if(auto C=dyn_cast<CmpInst>(v)) {
+    // We need the actual value of a comparison
+    return evaluateForThreadIdx(v, threadID, evalKnown);
+  }
+
   if(auto CI=dyn_cast<CallInst>(v)) {
     if(auto F=CI->getCalledFunction()) {
       // If ThreadIdx intrinsic, return the threadID value

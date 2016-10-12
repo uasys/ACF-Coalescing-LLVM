@@ -1,7 +1,13 @@
 
 __global__
 void kernel(int *a, int *b) {
+    if(threadIdx.x == 0) {
+        a[threadIdx.x] = 0;
+    }
     a[threadIdx.x] = b[threadIdx.x];
+    if(threadIdx.x%2 == 0) {
+        a[threadIdx.x] = 0;
+    }
 }
 
 int main()

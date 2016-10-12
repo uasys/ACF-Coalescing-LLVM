@@ -6,6 +6,9 @@
 #include <queue>
 #include <unordered_map>
 
+#ifndef THREAD_DEP_H
+#define THREAD_DEP_H
+
 using namespace std;
 using namespace llvm;
 
@@ -23,3 +26,5 @@ namespace gpucheck {
     unordered_map<Value *,bool> taint;
   };
 } // End gpucheck
+
+#endif
