@@ -1,4 +1,3 @@
-
 #include "llvm/Pass.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
@@ -6,15 +5,15 @@
 #include "ThreadDepAnalysis.h"
 #include "ThreadValueAnalysis.h"
 
-#ifndef BRANCH_DIVERGE_H
-#define BRANCH_DIVERGE_H
+#ifndef MEM_COALESCE_H
+#define MEM_COALESCE_H
 
 namespace gpucheck {
 
-  class BranchDivergeAnalysis : public ModulePass {
+  class MemCoalesceAnalysis : public ModulePass {
     public:
       static char ID;
-      BranchDivergeAnalysis() : ModulePass(ID) {}
+      MemCoalesceAnalysis() : ModulePass(ID) {}
       void getAnalysisUsage(AnalysisUsage &AU) const {
         AU.setPreservesAll();
         AU.addRequired<ThreadDependence>();
@@ -22,7 +21,7 @@ namespace gpucheck {
       }
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
-      float getDivergence(BranchInst *BI);
+      int coalescedRequests(Value *ptr);
     private:
       ThreadDependence *TD;
       ThreadValueAnalysis *TV;

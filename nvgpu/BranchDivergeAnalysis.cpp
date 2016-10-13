@@ -7,6 +7,7 @@
 #include "llvm/IR/Instructions.h"
 
 #include "BranchDivergeAnalysis.h"
+#include "Utilities.h"
 
 using namespace std;
 using namespace llvm;
@@ -16,26 +17,38 @@ using namespace gpucheck;
 
 #define DIVERGE_THRESH 0.2f
 
-bool BranchDivergeAnalysis::runOnFunction(Function &F) {
-  TD = &getAnalysis<ThreadDependence>();
-  TV = &getAnalysis<ThreadValueAnalysis>();
+bool BranchDivergeAnalysis::runOnModule(Module &M) {
+  // Run over each kernel function
+  for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
+    if(isKernelFunction(*f))
+      runOnKernel(*f);
+  }
+}
 
-  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
-    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-      if(auto B=dyn_cast<BranchInst>(i)) {
-        if(B->isConditional() && TD->isDependent(B)) {
-          // We've found a potentially divergent branch!
-          // TODO: Determine if branch is high-cost
-          float divergence = getDivergence(B);
-          if(divergence > DIVERGE_THRESH) {
-            errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
-            B->dump();
-            errs() << "\n\n";
+bool BranchDivergeAnalysis::runOnKernel(Function &F) {
+  // Get the analyses for this kernel
+  TD = &getAnalysis<ThreadDependence>(F);
+  TV = &getAnalysis<ThreadValueAnalysis>(F);
+
+  for(auto f=F.getParent()->begin(),e=F.getParent()->end(); f!=e; ++f) {
+    for(auto b=f->begin(),e=f->end(); b!=e; ++b) {
+      for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+        if(auto B=dyn_cast<BranchInst>(i)) {
+          if(B->isConditional() && TD->isDependent(B)) {
+            // We've found a potentially divergent branch!
+            // TODO: Determine if branch is high-cost
+            float divergence = getDivergence(B);
+            if(divergence > DIVERGE_THRESH) {
+              errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
+              B->dump();
+              errs() << "\n\n";
+            }
           }
         }
       }
     }
   }
+  return false;
 }
 
 float BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
