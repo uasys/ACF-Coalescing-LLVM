@@ -7,6 +7,7 @@
 #include "llvm/IR/Instructions.h"
 
 #include "BranchDivergeAnalysis.h"
+#include "BugEmitter.h"
 #include "Utilities.h"
 
 using namespace std;
@@ -23,6 +24,7 @@ bool BranchDivergeAnalysis::runOnModule(Module &M) {
     if(isKernelFunction(*f))
       runOnKernel(*f);
   }
+  return false;
 }
 
 bool BranchDivergeAnalysis::runOnKernel(Function &F) {
@@ -39,9 +41,18 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
             // TODO: Determine if branch is high-cost
             float divergence = getDivergence(B);
             if(divergence > DIVERGE_THRESH) {
-              errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
-              B->dump();
-              errs() << "\n\n";
+              emitWarning("Divergent Branch Detected", B);
+              DEBUG(
+                errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
+                B->dump();
+                errs() << "\n\n";
+              );
+            } else {
+              DEBUG(
+                errs() << "Nondivergent branch, diverge=(" << divergence << ")\n";
+                B->dump();
+                errs() << "\n\n";
+              );
             }
           }
         }

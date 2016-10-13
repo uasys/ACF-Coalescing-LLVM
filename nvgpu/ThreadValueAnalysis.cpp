@@ -26,25 +26,28 @@ bool ThreadValueAnalysis::runOnFunction(Function &F) {
   DL = new DataLayout(F.getParent());
   TD = &getAnalysis<ThreadDependence>();
   // Work lazily
-  for(auto b=F.begin(),e=F.end(); b!=e; ++b)
-    for(auto i=b->begin(),e=b->end(); i!=e; ++i)
-      if(TD->isDependent(&*i)) {
-        errs() << "Dependent instruction: ";
-        i->dump();
-        errs() << "\n";
-        APInt* val0 = threadDepPortion(&*i, 0);
-        APInt* val1 = threadDepPortion(&*i, 1);
-        if(val0 == nullptr)
-          errs() << "unknown";
-        else
-          errs() << *val0;
-        errs() << " - ";
-        if(val1 == nullptr)
-          errs() << "unknown";
-        else
-          errs() << *val1;
-        errs() << "\n";
-      }
+
+  DEBUG(
+    for(auto b=F.begin(),e=F.end(); b!=e; ++b)
+      for(auto i=b->begin(),e=b->end(); i!=e; ++i)
+        if(TD->isDependent(&*i)) {
+          errs() << "Dependent instruction: ";
+          i->dump();
+          errs() << "\n";
+          APInt* val0 = threadDepPortion(&*i, 0);
+          APInt* val1 = threadDepPortion(&*i, 1);
+          if(val0 == nullptr)
+            errs() << "unknown";
+          else
+            errs() << *val0;
+          errs() << " - ";
+          if(val1 == nullptr)
+            errs() << "unknown";
+          else
+            errs() << *val1;
+          errs() << "\n";
+        }
+      );
   return false;
 }
 

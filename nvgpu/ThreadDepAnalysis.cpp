@@ -43,13 +43,15 @@ bool ThreadDependence::runOnFunction(Function &F) {
     update(v, isDependent(v));
   }
 
-  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
-    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-      errs() << (taint[&*i] ? "Thread-Dependent" : "Thread-Constant ") << " - ";
-      i->dump();
-      errs() << "\n";
+  DEBUG(
+    for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
+      for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+        errs() << (taint[&*i] ? "Thread-Dependent" : "Thread-Constant ") << " - ";
+        i->dump();
+        errs() << "\n";
+      }
     }
-  }
+  );
 
   return false;
 }
@@ -58,14 +60,18 @@ void ThreadDependence::update(Value *v, bool newVal) {
   bool oldVal = taint[v];
   taint[v] = newVal;
   if(newVal != oldVal) {
-    errs() << "Update " << oldVal << "=>" << newVal << " for ";
-    v->dump();
-    errs() << "\n";
+    DEBUG(
+      errs() << "Update " << oldVal << "=>" << newVal << " for ";
+      v->dump();
+      errs() << "\n";
+    );
 
     for(auto user=v->user_begin(),e=v->user_end(); user!=e; ++user) {
-      errs() << "| Queued: ";
-      user->dump();
-      errs() << "\n";
+      DEBUG(
+        errs() << "| Queued: ";
+        user->dump();
+        errs() << "\n";
+      );
       worklist.push(*user);
     }
   }

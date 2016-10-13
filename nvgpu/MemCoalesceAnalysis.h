@@ -21,7 +21,7 @@ namespace gpucheck {
       }
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
-      int coalescedRequests(Value *ptr);
+      float requestsPerWarp(Value *ptr);
     private:
       ThreadDependence *TD;
       ThreadValueAnalysis *TV;
