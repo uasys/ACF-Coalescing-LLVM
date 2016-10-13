@@ -5,6 +5,7 @@ void kernel(int *a, int *b) {
         a[threadIdx.x] = 0;
     }
     a[threadIdx.x] = b[threadIdx.x];
+    a[threadIdx.x] = b[2*threadIdx.x];
     if(threadIdx.x%2 == 0) {
         a[threadIdx.x] = 0;
     }

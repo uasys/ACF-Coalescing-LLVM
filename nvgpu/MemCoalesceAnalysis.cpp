@@ -7,6 +7,7 @@
 #include "llvm/IR/Instructions.h"
 
 #include "MemCoalesceAnalysis.h"
+#include "BugEmitter.h"
 #include "Utilities.h"
 
 #include <vector>
@@ -17,6 +18,8 @@ using namespace llvm;
 using namespace gpucheck;
 
 #define DEBUG_TYPE "coalesce"
+
+#define COALESCE_THRES 4.0f
 
 bool MemCoalesceAnalysis::runOnModule(Module &M) {
   // Run over each kernel function
@@ -38,14 +41,17 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
         if(TD->isDependent(&*i)) {
           Value *ptr = nullptr;
           if(auto L=dyn_cast<LoadInst>(i)) {
-            ptr = L->getOperand(0);
+            ptr = L->getOperand(L->getPointerOperandIndex());
           }
           if(auto S=dyn_cast<StoreInst>(i)) {
-            ptr = S->getOperand(0);
+            ptr = S->getOperand(S->getPointerOperandIndex());
           }
           if(ptr != nullptr) {
             // We have a memory access to inspect
             float requests = requestsPerWarp(ptr);
+            if(requests > COALESCE_THRES)
+              emitWarning("Uncoalesced Access Detected", &*i);
+
             DEBUG(errs() << "Found a memory access:\n");
             DEBUG(i->dump());
             DEBUG(errs() << "\n Memory requests required per warp: " <<
