@@ -40,10 +40,12 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
     for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
       if(TD->isDependent(&*i)) {
         Value *ptr = nullptr;
+        bool write = false;
         if(auto L=dyn_cast<LoadInst>(i)) {
           ptr = L->getOperand(L->getPointerOperandIndex());
         }
         if(auto S=dyn_cast<StoreInst>(i)) {
+          write = true;
           ptr = S->getOperand(S->getPointerOperandIndex());
         }
         if(ptr != nullptr) {
@@ -51,7 +53,7 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
           float requests = requestsPerWarp(ptr);
           if(requests > COALESCE_THRES) {
             Severity sev;
-            emitWarning(getWarning(&*ptr, sev), &*i, sev);
+            emitWarning(getWarning(&*ptr, write, requests, sev), &*i, sev);
           }
 
           DEBUG(errs() << "Found a memory access:\n");
@@ -65,8 +67,13 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
   return false;
 }
 
-string MemCoalesceAnalysis::getWarning(Value *ptr, Severity& severity) {
+string MemCoalesceAnalysis::getWarning(Value *ptr, bool write, float requestsPerWarp, Severity& severity) {
+  int reqs = (int) requestsPerWarp;
   string prefix = "";
+  if (write)
+    prefix = "In write to "+getValueName(ptr)+", ";
+  else
+    prefix = "In read from "+getValueName(ptr)+", ";
 
   APInt *val[1024];
   for(int i = 0; i<1024; i++)
@@ -90,11 +97,10 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, Severity& severity) {
     SmallString<16> strideStr;
     stride.toString(strideStr, 10, true);
     severity = Severity::SEV_MAX;
-    return prefix + "Memory access stride " + string(strideStr.c_str()) + " exceeds max stride 4";
+    return prefix + "Memory access stride " + string(strideStr.c_str()) + " exceeds max stride 4, requires " + to_string(reqs) + " requests";
   }
 
   // Let's set severity by how uncoalesced the access is
-  int reqs = (int) requestsPerWarp(ptr);
   if(reqs > 16) {
     severity = Severity::SEV_MAX;
   } else if(reqs > 8) {

@@ -23,7 +23,7 @@ namespace gpucheck {
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
       float requestsPerWarp(Value *ptr);
-      string getWarning(Value *ptr, Severity& severity);
+      string getWarning(Value *ptr, bool write, float requestsPerWarp, Severity& severity);
     private:
       ThreadDependence *TD;
       ThreadValueAnalysis *TV;
