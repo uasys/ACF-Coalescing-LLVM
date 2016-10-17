@@ -12,6 +12,8 @@
 
 #include <vector>
 #include <utility>
+#include <string>
+#include <iostream>
 
 using namespace std;
 using namespace llvm;
@@ -22,46 +24,85 @@ using namespace gpucheck;
 #define COALESCE_THRES 4.0f
 
 bool MemCoalesceAnalysis::runOnModule(Module &M) {
-  // Run over each kernel function
+  TD = &getAnalysis<ThreadDependence>();
+  TV = &getAnalysis<ThreadValueAnalysis>();
+  // Run over each GPU function
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
-    if(isKernelFunction(*f))
+    //if(isKernelFunction(*f))
       runOnKernel(*f);
   }
   return false;
 }
 
 bool MemCoalesceAnalysis::runOnKernel(Function &F) {
-  // Get the analyses for this kernel
-  TD = &getAnalysis<ThreadDependence>(F);
-  TV = &getAnalysis<ThreadValueAnalysis>(F);
 
-  for(auto f=F.getParent()->begin(),e=F.getParent()->end(); f!=e; ++f) {
-    for(auto b=f->begin(),e=f->end(); b!=e; ++b) {
-      for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-        if(TD->isDependent(&*i)) {
-          Value *ptr = nullptr;
-          if(auto L=dyn_cast<LoadInst>(i)) {
-            ptr = L->getOperand(L->getPointerOperandIndex());
+  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
+    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+      if(TD->isDependent(&*i)) {
+        Value *ptr = nullptr;
+        if(auto L=dyn_cast<LoadInst>(i)) {
+          ptr = L->getOperand(L->getPointerOperandIndex());
+        }
+        if(auto S=dyn_cast<StoreInst>(i)) {
+          ptr = S->getOperand(S->getPointerOperandIndex());
+        }
+        if(ptr != nullptr) {
+          // We have a memory access to inspect
+          float requests = requestsPerWarp(ptr);
+          if(requests > COALESCE_THRES) {
+            Severity sev;
+            emitWarning(getWarning(&*ptr, sev), &*i, sev);
           }
-          if(auto S=dyn_cast<StoreInst>(i)) {
-            ptr = S->getOperand(S->getPointerOperandIndex());
-          }
-          if(ptr != nullptr) {
-            // We have a memory access to inspect
-            float requests = requestsPerWarp(ptr);
-            if(requests > COALESCE_THRES)
-              emitWarning("Uncoalesced Access Detected", &*i);
 
-            DEBUG(errs() << "Found a memory access:\n");
-            DEBUG(i->dump());
-            DEBUG(errs() << "\n Memory requests required per warp: " <<
-                requestsPerWarp(ptr) << "\n");
-          }
+          DEBUG(errs() << "Found a memory access:\n");
+          DEBUG(i->dump());
+          DEBUG(errs() << "\n Memory requests required per warp: " <<
+              requestsPerWarp(ptr) << "\n");
         }
       }
     }
   }
   return false;
+}
+
+string MemCoalesceAnalysis::getWarning(Value *ptr, Severity& severity) {
+  string prefix = "";
+
+  APInt *val[1024];
+  for(int i = 0; i<1024; i++)
+    val[i] = TV->threadDepPortion(ptr, i);
+
+  for(int i = 0; i<1024; i++)
+    if(val[i] == nullptr) {
+      DEBUG(errs() << "nullptr at thread " << i << "\n";);
+      severity = Severity::SEV_UNKNOWN;
+      return prefix + "Possible Uncoalesced Access Detected";
+    }
+
+  APInt stride = *val[1]-*val[0];
+  bool strided = true;
+  for(int i = 2; i<1024; i++) {
+    if(*val[i]-*val[i-1] != stride)
+      strided = false;
+  }
+
+  if(strided) {
+    SmallString<16> strideStr;
+    stride.toString(strideStr, 10, true);
+    severity = Severity::SEV_MAX;
+    return prefix + "Memory access stride " + string(strideStr.c_str()) + " exceeds max stride 4";
+  }
+
+  // Let's set severity by how uncoalesced the access is
+  int reqs = (int) requestsPerWarp(ptr);
+  if(reqs > 16) {
+    severity = Severity::SEV_MAX;
+  } else if(reqs > 8) {
+    severity = Severity::SEV_MED;
+  } else {
+    severity = Severity::SEV_MIN;
+  }
+  return prefix + "Uncoalesced Memory Access requires " + to_string(reqs) + " requests/warp";
 }
 
 float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
@@ -122,10 +163,6 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
       if(!combined)
         i++;
     }
-    DEBUG(errs() << "Requests in warp " << warp << "\n");
-    DEBUG(for(auto r=requests.begin(),e=requests.end();r!=e;++r) {
-      errs() << "    " << r->first << " - " << r->second << "\n";
-    });
     requestCount += requests.size();
   }
   return requestCount / 32.0f;

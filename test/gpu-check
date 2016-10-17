@@ -1,0 +1,46 @@
+#!/usr/bin/python
+import argparse
+import subprocess
+import sys
+import glob, os
+
+parser = argparse.ArgumentParser()
+parser.add_argument("files", metavar='File', nargs='+')
+parser.add_argument("-I", dest='includes', nargs='+')
+parser.add_argument("-O", dest='opt')
+parser.add_argument("-l", dest='libs')
+parser.add_argument("-L", dest='libdir')
+parser.add_argument("-g", dest='debug')
+parser.add_argument("-o", dest='output')
+parser.add_argument("-c", dest='compile')
+parser.add_argument("-v", dest='verbose')
+
+args = parser.parse_args()
+
+compile = "clang -S -emit-llvm -g" + "".join([" -I"+inc for inc in args.includes]) + " " + " ".join(args.files)
+if args.verbose:
+  print(compile)
+retcode = subprocess.call(compile, shell=True)
+if(retcode != 0):
+  sys.exit(0)
+
+bitcode = []
+for root, dirs, files in os.walk("."):
+  for f in files:
+    if f.endswith("sm_20.ll"):
+      bitcode.append(os.path.join(root, f))
+
+
+llvmlink = "llvm-link -o gpucheck.bc " + " ".join(bitcode)
+if args.verbose:
+  print llvmlink
+retcode = subprocess.call(llvmlink, shell=True)
+if(retcode != 0):
+  sys.exit(0)
+
+gpucheck = "opt -load /home/taylor/git/coalescingsa-llvm/nvgpu/libGpuAnalysis.so -coalesce -bdiverge gpucheck.bc"
+print("Build complete, Running GPU-Check");
+retcode = subprocess.call(llvmlink, shell=True)
+if(retcode != 0):
+  sys.exit(0)
+print("GPU-Check ran successfully");

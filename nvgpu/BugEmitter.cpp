@@ -34,13 +34,27 @@ bool printline(string filename, int lineNumber) {
   if(linenum != lineNumber)
     return false;
 
-  errs() << "    \"" << line << "\"\n";
+  errs()<< "    " << line << "\n";
   return true;
 }
 
-void gpucheck::emitWarning(string warning, Instruction* i) {
+void gpucheck::emitWarning(string warning, Instruction* i, Severity sev) {
   DILocation *Loc = i->getDebugLoc();
   string funcName = demangle(i->getParent()->getParent()->getName().str());
+  switch(sev) {
+    case SEV_UNKNOWN:
+      errs() << "(Unk) ";
+      break;
+    case SEV_MAX:
+      errs() << "(MAX) ";
+      break;
+    case SEV_MED:
+      errs() << "(Med) ";
+      break;
+    case SEV_MIN:
+      errs() << "(min) ";
+      break;
+  }
   if(!Loc) {
     errs() << "Warning: " << warning << "\n";
     errs() << "in " << funcName << ":\n";

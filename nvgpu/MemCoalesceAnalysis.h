@@ -2,6 +2,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 
+#include "BugEmitter.h"
 #include "ThreadDepAnalysis.h"
 #include "ThreadValueAnalysis.h"
 
@@ -22,6 +23,7 @@ namespace gpucheck {
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
       float requestsPerWarp(Value *ptr);
+      string getWarning(Value *ptr, Severity& severity);
     private:
       ThreadDependence *TD;
       ThreadValueAnalysis *TV;

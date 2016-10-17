@@ -19,41 +19,38 @@ using namespace gpucheck;
 #define DIVERGE_THRESH 0.2f
 
 bool BranchDivergeAnalysis::runOnModule(Module &M) {
+  TD = &getAnalysis<ThreadDependence>();
+  TV = &getAnalysis<ThreadValueAnalysis>();
   // Run over each kernel function
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
-    if(isKernelFunction(*f))
+    //if(isKernelFunction(*f))
       runOnKernel(*f);
   }
   return false;
 }
 
 bool BranchDivergeAnalysis::runOnKernel(Function &F) {
-  // Get the analyses for this kernel
-  TD = &getAnalysis<ThreadDependence>(F);
-  TV = &getAnalysis<ThreadValueAnalysis>(F);
 
-  for(auto f=F.getParent()->begin(),e=F.getParent()->end(); f!=e; ++f) {
-    for(auto b=f->begin(),e=f->end(); b!=e; ++b) {
-      for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-        if(auto B=dyn_cast<BranchInst>(i)) {
-          if(B->isConditional() && TD->isDependent(B)) {
-            // We've found a potentially divergent branch!
-            // TODO: Determine if branch is high-cost
-            float divergence = getDivergence(B);
-            if(divergence > DIVERGE_THRESH) {
-              emitWarning("Divergent Branch Detected", B);
-              DEBUG(
-                errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
-                B->dump();
-                errs() << "\n\n";
-              );
-            } else {
-              DEBUG(
-                errs() << "Nondivergent branch, diverge=(" << divergence << ")\n";
-                B->dump();
-                errs() << "\n\n";
-              );
-            }
+  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
+    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+      if(auto B=dyn_cast<BranchInst>(i)) {
+        if(B->isConditional() && TD->isDependent(B)) {
+          // We've found a potentially divergent branch!
+          // TODO: Determine if branch is high-cost
+          float divergence = getDivergence(B);
+          if(divergence > DIVERGE_THRESH) {
+            emitWarning("Divergent Branch Detected", B, SEV_MED);
+            DEBUG(
+              errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
+              B->dump();
+              errs() << "\n\n";
+            );
+          } else {
+            DEBUG(
+              errs() << "Nondivergent branch, diverge=(" << divergence << ")\n";
+              B->dump();
+              errs() << "\n\n";
+            );
           }
         }
       }

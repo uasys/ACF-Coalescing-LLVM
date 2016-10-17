@@ -8,9 +8,19 @@
 #include <iostream>
 #include <string>
 
+#ifndef BUGEMITTER_H
+#define BUGEMITTER_H
+
 using namespace llvm;
 using namespace std;
 
 namespace gpucheck {
-  extern void emitWarning(string warning, Instruction* i);
+  enum Severity {
+    SEV_UNKNOWN,
+    SEV_MIN,
+    SEV_MED,
+    SEV_MAX
+  };
+  extern void emitWarning(string warning, Instruction* i, Severity sev);
 }
+#endif
