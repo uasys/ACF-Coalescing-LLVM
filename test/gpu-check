@@ -40,7 +40,7 @@ if(retcode != 0):
 
 gpucheck = "opt -load /home/taylor/git/coalescingsa-llvm/nvgpu/libGpuAnalysis.so -coalesce -bdiverge gpucheck.bc"
 print("Build complete, Running GPU-Check");
-retcode = subprocess.call(llvmlink, shell=True)
+retcode = subprocess.call(gpucheck, shell=True)
 if(retcode != 0):
   sys.exit(0)
 print("GPU-Check ran successfully");

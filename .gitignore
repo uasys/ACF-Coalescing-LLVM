@@ -32,7 +32,8 @@
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
-Makefile
+/Makefile
+/nvgpu/Makefile
 cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
