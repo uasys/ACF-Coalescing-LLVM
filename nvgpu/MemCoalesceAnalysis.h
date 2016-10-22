@@ -11,6 +11,13 @@
 
 namespace gpucheck {
 
+  enum MemAccess {
+    Read,
+    Write,
+    Update,
+    Unknown
+  };
+
   class MemCoalesceAnalysis : public ModulePass {
     public:
       static char ID;
@@ -23,7 +30,8 @@ namespace gpucheck {
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
       float requestsPerWarp(Value *ptr);
-      string getWarning(Value *ptr, bool write, float requestsPerWarp, Severity& severity);
+      MemAccess getAccessType(Instruction *i, Value *address);
+      string getWarning(Value *ptr, MemAccess tpe, float requestsPerWarp, Severity& severity);
     private:
       ThreadDependence *TD;
       ThreadValueAnalysis *TV;

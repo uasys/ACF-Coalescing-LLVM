@@ -40,20 +40,23 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
     for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
       if(TD->isDependent(&*i)) {
         Value *ptr = nullptr;
-        bool write = false;
         if(auto L=dyn_cast<LoadInst>(i)) {
           ptr = L->getOperand(L->getPointerOperandIndex());
         }
         if(auto S=dyn_cast<StoreInst>(i)) {
-          write = true;
           ptr = S->getOperand(S->getPointerOperandIndex());
         }
         if(ptr != nullptr) {
+          MemAccess tpe = getAccessType(&*i, ptr);
+          if(tpe == Update && isa<StoreInst>(i)) {
+            // Don't report updates twice
+            continue;
+          }
           // We have a memory access to inspect
           float requests = requestsPerWarp(ptr);
           if(requests > COALESCE_THRES) {
             Severity sev;
-            emitWarning(getWarning(&*ptr, write, requests, sev), &*i, sev);
+            emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev);
           }
 
           DEBUG(errs() << "Found a memory access:\n");
@@ -67,13 +70,41 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
   return false;
 }
 
-string MemCoalesceAnalysis::getWarning(Value *ptr, bool write, float requestsPerWarp, Severity& severity) {
+MemAccess MemCoalesceAnalysis::getAccessType(Instruction *i, Value *address) {
+  bool read = false;
+  bool written = false;
+  for(auto user=address->user_begin(),e=address->user_end(); user != e; ++user) {
+    if(auto u=dyn_cast<Instruction>(*user)) {
+      if(isa<LoadInst>(u) && u->getParent() == i->getParent())
+        read = true;
+      if(isa<StoreInst>(u) && u->getParent() == i->getParent())
+        written = true;
+    }
+  }
+  if(read && written)
+    return MemAccess::Update;
+  if(read)
+    return MemAccess::Read;
+  if(written)
+    return MemAccess::Write;
+  //TODO: error, should never reach here
+  return MemAccess::Unknown;
+}
+
+string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requestsPerWarp, Severity& severity) {
   int reqs = (int) requestsPerWarp;
   string prefix = "";
-  if (write)
-    prefix = "In write to "+getValueName(ptr)+", ";
-  else
-    prefix = "In read from "+getValueName(ptr)+", ";
+  switch (tpe) {
+    case Write:
+      prefix = "In write to "+getValueName(ptr)+", ";
+      break;
+    case Read:
+      prefix = "In read from "+getValueName(ptr)+", ";
+      break;
+    case Update:
+      prefix = "In update to "+getValueName(ptr)+", ";
+      break;
+  }
 
   APInt *val[1024];
   for(int i = 0; i<1024; i++)
@@ -114,7 +145,7 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, bool write, float requestsPer
 float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
   int requestCount = 0;
   for(int warp = 0; warp<32; warp++) {
-    vector<pair<size_t,size_t>> requests;
+    vector<pair<APInt,APInt>> requests;
     for(int tid=0; tid<32; tid++) {
       APInt *val = TV->threadDepPortion(ptr, warp*32+tid);
 
@@ -123,42 +154,41 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
         continue;
       }
 
-      // Get the offset as an integer
-      size_t offset = val->getRawData()[0];
-
       // Try to fit it into existing requests
       bool fits = false;
       for(auto r=requests.begin(),e=requests.end();r!=e;++r) {
-        if(offset >= r->first && offset <= r->second - 4) {
+        if(val->sge(r->first) && val->sle(r->second - 4)) {
           // Fits inside existing request
           fits = true;
           break;
-        } else if(offset >= r->first - 4 && offset <= r->second - 4) {
+        } else if(val->sge(r->first - 4) && val->sle(r->second - 4)) {
           // Fits against lower edge
           fits = true;
-          r->first = offset;
-        } else if(offset >= r->first && offset <= r->second) {
+          r->first = *val;
+        } else if(val->sge(r->first) && val->sle(r->second)) {
           // Fits against upper edge
           fits = true;
-          r->second = offset+4;
+          r->second = *val+4;
         }
       }
 
       // Otherwise create a new request
       if(!fits) {
-        requests.push_back(make_pair(offset,offset+4));
+        requests.push_back(make_pair(*val,*val+4));
       }
     }
     // Attempt to merge requests
     for(int i=0; i<requests.size();) {
       bool combined = false;
       for(int cmp=i+1; cmp<requests.size(); cmp++) {
-        if((requests[cmp].first <= requests[i].first && requests[cmp].second >= requests[i].first) ||
-           (requests[cmp].second >= requests[i].second && requests[cmp].first <= requests[i].second)) {
+        if((requests[cmp].first.sle(requests[i].first) &&
+            requests[cmp].second.sge(requests[i].first)) ||
+           (requests[cmp].second.sge(requests[i].second) &&
+            requests[cmp].first.sle(requests[i].second))) {
           // These requests definitely overlap, combine them
-          if (requests[cmp].first < requests[i].first)
+          if (requests[cmp].first.slt(requests[i].first))
             requests[i].first = requests[cmp].first;
-          if (requests[cmp].second > requests[i].second)
+          if (requests[cmp].second.sgt(requests[i].second))
             requests[i].second = requests[cmp].second;
           // remove the second request
           requests.erase(requests.begin()+cmp);
@@ -169,6 +199,14 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
       if(!combined)
         i++;
     }
+    DEBUG(if(warp == 0) {
+      errs() << "Requests for address:\n";
+      ptr->dump();
+      errs() << "Known Requests: " << requests.size() << " \n";
+      for(auto r=requests.begin(),e=requests.end(); r!=e; ++r)
+        errs() << r->first << "-" << r->second << "\n";
+      errs() << "Unknown Requests: " << requestCount << "\n";
+    });
     requestCount += requests.size();
   }
   return requestCount / 32.0f;
