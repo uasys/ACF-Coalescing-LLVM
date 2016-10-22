@@ -31,21 +31,22 @@ bool ThreadValueAnalysis::runOnModule(Module &M) {
     known.push_back(map<Value *,APInt>());
     evalKnown.push_back(map<Value *,APInt>());
   }
-  // Set kernel arguments to not thread-divergent
   for(auto F=M.begin(),e=M.end(); F!=e; ++F) {
     if(isKernelFunction(*F)) {
+      // Set kernel arguments to non-thread dependent
       for(auto a=F->arg_begin(),e=F->arg_end(); a!=e; ++a) {
         int bitwidth = 64;
         if(a->getType()->isIntegerTy())
           bitwidth = a->getType()->getIntegerBitWidth();
         if(a->getType()->isIntegerTy() || a->getType()->isPointerTy())
           for(int i=0; i<1024; i++)
-            evalKnown[i].insert(make_pair(&*a, APInt(bitwidth, 0)));
+            known[i].insert(make_pair(&*a, APInt(bitwidth, 0)));
       }
+      //Push down call arguments for each kernel
+      map<Function *,bool> visited;
+      pushdownArgs(&*F, visited);
     }
   }
-
-  //TODO: Forward-propagate through calls
 
   DEBUG(
     for(auto F=M.begin(),e=M.end(); F!=e; ++F) {
@@ -72,14 +73,48 @@ bool ThreadValueAnalysis::runOnModule(Module &M) {
   return false;
 }
 
+void ThreadValueAnalysis::pushdownArgs(Function *F, map<Function *, bool>& visited) {
+  if(visited[F])
+    return;
+  visited[F] = true;
+
+  for(auto b=F->begin(),e=F->end(); b!=e; ++b) {
+    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+      if(auto CI=dyn_cast<CallInst>(&*i)) {
+        if(auto F=CI->getCalledFunction()) {
+          auto arg=CI->arg_begin();
+          for(auto param=F->arg_begin(),e=F->arg_end(); param!=e; ++param) {
+            for(int tid=0; tid<1024; ++tid) {
+              // Compute exact value and thread-dep portion for this call
+              const APInt *val = evaluateForThreadIdx(arg->get(), tid);
+              const APInt *portion = threadDepPortion(arg->get(), tid);
+              if(val != nullptr)
+                  known[tid].insert(make_pair(&*param, *val));
+              if(portion != nullptr)
+                  evalKnown[tid].insert(make_pair(&*param, *portion));
+            }
+            ++arg;
+          }
+          // Recurse into this call
+          pushdownArgs(F, visited);
+        }
+      }
+    }
+  }
+}
+
 APInt* ThreadValueAnalysis::evaluateForThreadIdx(Value *v, int threadID) {
   if(threadID < 0 || threadID > 1024)
     return nullptr;
 
   const APInt* val = evaluateForThreadIdx(v, APInt(32, threadID, false), evalKnown[threadID]);
   APInt *out = nullptr;
-  if(val != nullptr)
+  if(val != nullptr) {
     out = new APInt(*val);
+    if(threadID < 2) DEBUG(errs() << "[" << threadID << "] " << *val << " = "; v->dump());
+  } else {
+    if(threadID < 2) DEBUG(errs()  << "[" << threadID << "] " << "unknown = "; v->dump());
+  }
   return out;
 }
 
@@ -89,8 +124,12 @@ APInt* ThreadValueAnalysis::threadDepPortion(Value *v, int threadID) {
 
   const APInt* val = threadDepPortion(v, APInt(32, threadID, false), known[threadID], evalKnown[threadID], TD);
   APInt *out = nullptr;
-  if(val != nullptr)
+  if(val != nullptr) {
     out = new APInt(*val);
+    if(threadID < 2) DEBUG(errs() << "[td" << threadID << "] " << *val << " = "; v->dump());
+  } else {
+    if(threadID < 2) DEBUG(errs()  << "[td" << threadID << "] " << "unknown = "; v->dump());
+  }
   return out;
 }
 

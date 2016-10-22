@@ -41,29 +41,31 @@ bool printline(string filename, int lineNumber) {
 void gpucheck::emitWarning(string warning, Instruction* i, Severity sev) {
   DILocation *Loc = i->getDebugLoc();
   string funcName = demangle(i->getParent()->getParent()->getName().str());
+  string sevStr;
   switch(sev) {
     case SEV_UNKNOWN:
-      errs() << "(Unk) ";
+      sevStr = "(Unk) ";
       break;
     case SEV_MAX:
-      errs() << "(MAX) ";
+      sevStr = "(MAX) ";
       break;
     case SEV_MED:
-      errs() << "(Med) ";
+      sevStr = "(Med) ";
       break;
     case SEV_MIN:
-      errs() << "(min) ";
+      sevStr = "(min) ";
       break;
   }
   if(!Loc) {
-    errs() << "Warning: " << warning << "\n";
+    errs() << sevStr << "Warning: " << warning << "\n";
     errs() << "in " << funcName << ":\n";
     i->dump();
     errs() << "\n";
   } else {
-    errs() << "Warning: " << warning << "\n";
+    errs() << sevStr << "Warning: " << warning << "\n";
     errs() << Loc->getFilename() << ":" << Loc->getLine() << " in " << funcName << ":\n";
     printline((Loc->getDirectory()+"/"+Loc->getFilename()).str(), Loc->getLine());
+    errs() << "\n";
 
   }
 }

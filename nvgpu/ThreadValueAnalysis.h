@@ -30,8 +30,13 @@ namespace gpucheck {
     private:
       DataLayout *DL;
       ThreadDependence *TD;
+
+      // Initialization Methods
+      void pushdownArgs(Function *F, map<Function *,bool>& visited);
+
       // Helper methods
       Value* PHISelectEdge(PHINode *PHI, APInt threadID, map<Value *, APInt>& knownValues);
+      Value* CallSelectEdge(CallInst *CI, APInt threadID, map<Value *, APInt>& knownValues);
 
       // Exact Value evaluation
       const APInt* evaluateForThreadIdx(Value *v, APInt threadID, map<Value *, APInt>& knownValues);
