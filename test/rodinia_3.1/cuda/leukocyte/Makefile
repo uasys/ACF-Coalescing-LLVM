@@ -1,4 +1,4 @@
-all: CUDA/leukocyte 
+all: CUDA/leukocyte
 
 CUDA/leukocyte:
 	cd CUDA; make
