@@ -6,10 +6,10 @@ scanLargeArray_kernel.cu:136
 scanLargeArray_kernel.cu:162
 scanLargeArray_kernel.cu:191
 scanLargeArray_kernel.cu:248
-vlc_kernel_sm64huff.cu:93
 vlc_kernel_sm64huff.cu:103
 vlc_kernel_sm64huff.cu:109
 vlc_kernel_sm64huff.cu:119
 vlc_kernel_sm64huff.cu:131
 vlc_kernel_sm64huff.cu:139
 vlc_kernel_sm64huff.cu:158
+vlc_kernel_sm64huff.cu:93
