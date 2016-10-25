@@ -6,7 +6,7 @@ CC_FLAGS = -g -fopenmp -O2
 
 # CUDA compiler
 NVCC = $(CUDA_DIR)/bin/nvcc
-NVCC_FLAGS = -I$(CUDA_DIR)/include
+NVCC_FLAGS = -I$(CUDA_DIR)/include -fopenmp
 
 # 'make dbg=1' enables NVCC debugging
 ifeq ($(dbg),1)

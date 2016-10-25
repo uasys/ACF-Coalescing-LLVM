@@ -6,16 +6,21 @@ import glob, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("files", metavar='File', nargs='+')
+parser.add_argument("-D", dest='debugs', nargs='+')
 parser.add_argument("-I", dest='includes', nargs='+')
+parser.add_argument("-l", dest='libs', nargs='+')
 parser.add_argument("-O", dest='opt')
-parser.add_argument("-l", dest='libs')
 parser.add_argument("-L", dest='libdir')
 parser.add_argument("-g", dest='debug', action='store_true')
 parser.add_argument("-G", dest='Debug', action='store_true')
 parser.add_argument("-o", dest='output')
 parser.add_argument("-arch", dest='arch')
+parser.add_argument("-fopenmp", dest='omp', action='store_true')
+parser.add_argument("-m", dest='bitwidth')
+parser.add_argument("-X", dest='passthrough')
 parser.add_argument("-cuda", dest='cuda', action='store_true')
 parser.add_argument("-use-fast-math", dest='ufm', action='store_true')
+parser.add_argument("-use_fast_math", dest='ufm2', action='store_true')
 parser.add_argument("-c", dest='compile', action='store_true')
 parser.add_argument("-v", dest='verbose', action='store_true')
 
@@ -24,7 +29,21 @@ args = parser.parse_args()
 def eprint(string):
   print >> sys.stderr, string
 
-compile = "clang -S -emit-llvm -g" + "".join([" -I"+inc for inc in args.includes]) + " " + " ".join(args.files)
+if not args.includes:
+  args.includes = []
+
+compile = "clang -S -emit-llvm -g" + "".join([" -I"+inc for inc in args.includes])
+if(args.omp):
+  compile += " -fopenmp"
+
+if(args.debugs):
+  compile += " " + "".join([" -D"+d for d in args.debugs])
+
+if(args.ufm or args.ufm2):
+  compile += -I
+
+compile += " " + " ".join(args.files)
+
 if args.verbose:
   print(compile)
 retcode = subprocess.call(compile, shell=True)

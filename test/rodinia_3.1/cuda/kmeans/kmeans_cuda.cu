@@ -4,7 +4,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include <omp.h>
+#include "/usr/lib/gcc/x86_64-linux-gnu/5/include/omp.h"
 
 #include <cuda.h>
 
@@ -45,7 +45,7 @@ int    *block_deltas_d;												/* per block calculation of deltas */
 /* allocate device memory, calculate number of blocks and threads, and invert the data array */
 extern "C"
 void allocateMemory(int npoints, int nfeatures, int nclusters, float **features)
-{	
+{
 	num_blocks = npoints / num_threads;
 	if (npoints % num_threads > 0)		/* defeat truncation */
 		num_blocks++;
@@ -64,31 +64,31 @@ void allocateMemory(int npoints, int nfeatures, int nclusters, float **features)
 
 	/* allocate memory for block_new_centers[] (host) */
 	block_new_centers = (float *) malloc(nclusters*nfeatures*sizeof(float));
-	
+
 	/* allocate memory for feature_flipped_d[][], feature_d[][] (device) */
 	cudaMalloc((void**) &feature_flipped_d, npoints*nfeatures*sizeof(float));
 	cudaMemcpy(feature_flipped_d, features[0], npoints*nfeatures*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMalloc((void**) &feature_d, npoints*nfeatures*sizeof(float));
-		
-	/* invert the data array (kernel execution) */	
+
+	/* invert the data array (kernel execution) */
 	invert_mapping<<<num_blocks,num_threads>>>(feature_flipped_d,feature_d,npoints,nfeatures);
-		
+
 	/* allocate memory for membership_d[] and clusters_d[][] (device) */
 	cudaMalloc((void**) &membership_d, npoints*sizeof(int));
 	cudaMalloc((void**) &clusters_d, nclusters*nfeatures*sizeof(float));
 
-	
+
 #ifdef BLOCK_DELTA_REDUCE
 	// allocate array to hold the per block deltas on the gpu side
-	
+
 	cudaMalloc((void**) &block_deltas_d, num_blocks_perdim * num_blocks_perdim * sizeof(int));
 	//cudaMemcpy(block_delta_d, &delta_h, sizeof(int), cudaMemcpyHostToDevice);
 #endif
 
 #ifdef BLOCK_CENTER_REDUCE
 	// allocate memory and copy to card cluster  array in which to accumulate center points for the next iteration
-	cudaMalloc((void**) &block_clusters_d, 
-        num_blocks_perdim * num_blocks_perdim * 
+	cudaMalloc((void**) &block_clusters_d,
+        num_blocks_perdim * num_blocks_perdim *
         nclusters * nfeatures * sizeof(float));
 	//cudaMemcpy(new_clusters_d, new_centers[0], nclusters*nfeatures*sizeof(float), cudaMemcpyHostToDevice);
 #endif
@@ -123,19 +123,19 @@ void deallocateMemory()
 // Program main																  //
 
 int
-main( int argc, char** argv) 
+main( int argc, char** argv)
 {
 	// make sure we're running on the big card
     cudaSetDevice(1);
 	// as done in the CUDA start/help document provided
-	setup(argc, argv);    
+	setup(argc, argv);
 }
 
 //																			  //
 ////////////////////////////////////////////////////////////////////////////////
 
 
-/* ------------------- kmeansCuda() ------------------------ */    
+/* ------------------- kmeansCuda() ------------------------ */
 extern "C"
 int	// delta -- had problems when return value was of float type
 kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
@@ -162,7 +162,7 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
 
 	/* set up texture */
     cudaChannelFormatDesc chDesc0 = cudaCreateChannelDesc<float>();
-    t_features.filterMode = cudaFilterModePoint;   
+    t_features.filterMode = cudaFilterModePoint;
     t_features.normalized = false;
     t_features.channelDesc = chDesc0;
 
@@ -170,7 +170,7 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
         printf("Couldn't bind features array to texture!\n");
 
 	cudaChannelFormatDesc chDesc1 = cudaCreateChannelDesc<float>();
-    t_features_flipped.filterMode = cudaFilterModePoint;   
+    t_features_flipped.filterMode = cudaFilterModePoint;
     t_features_flipped.normalized = false;
     t_features_flipped.channelDesc = chDesc1;
 
@@ -178,7 +178,7 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
         printf("Couldn't bind features_flipped array to texture!\n");
 
 	cudaChannelFormatDesc chDesc2 = cudaCreateChannelDesc<float>();
-    t_clusters.filterMode = cudaFilterModePoint;   
+    t_clusters.filterMode = cudaFilterModePoint;
     t_clusters.normalized = false;
     t_clusters.channelDesc = chDesc2;
 
@@ -193,7 +193,7 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
 	   changed to 2d (source code on NVIDIA CUDA Programming Guide) */
     dim3  grid( num_blocks_perdim, num_blocks_perdim );
     dim3  threads( num_threads_perdim*num_threads_perdim );
-    
+
 	/* execute the kernel */
     kmeansPoint<<< grid, threads >>>( feature_d,
                                       nfeatures,
@@ -207,35 +207,35 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
 	cudaThreadSynchronize();
 
 	/* copy back membership (device to host) */
-	cudaMemcpy(membership_new, membership_d, npoints*sizeof(int), cudaMemcpyDeviceToHost);	
+	cudaMemcpy(membership_new, membership_d, npoints*sizeof(int), cudaMemcpyDeviceToHost);
 
 #ifdef BLOCK_CENTER_REDUCE
     /*** Copy back arrays of per block sums ***/
     float * block_clusters_h = (float *) malloc(
-        num_blocks_perdim * num_blocks_perdim * 
+        num_blocks_perdim * num_blocks_perdim *
         nclusters * nfeatures * sizeof(float));
-        
-	cudaMemcpy(block_clusters_h, block_clusters_d, 
-        num_blocks_perdim * num_blocks_perdim * 
-        nclusters * nfeatures * sizeof(float), 
+
+	cudaMemcpy(block_clusters_h, block_clusters_d,
+        num_blocks_perdim * num_blocks_perdim *
+        nclusters * nfeatures * sizeof(float),
         cudaMemcpyDeviceToHost);
 #endif
 #ifdef BLOCK_DELTA_REDUCE
     int * block_deltas_h = (int *) malloc(
         num_blocks_perdim * num_blocks_perdim * sizeof(int));
-        
-	cudaMemcpy(block_deltas_h, block_deltas_d, 
-        num_blocks_perdim * num_blocks_perdim * sizeof(int), 
+
+	cudaMemcpy(block_deltas_h, block_deltas_d,
+        num_blocks_perdim * num_blocks_perdim * sizeof(int),
         cudaMemcpyDeviceToHost);
 #endif
-    
+
 	/* for each point, sum data points in each cluster
 	   and see if membership has changed:
 	     if so, increase delta and change old membership, and update new_centers;
 	     otherwise, update new_centers */
 	delta = 0;
 	for (i = 0; i < npoints; i++)
-	{		
+	{
 		int cluster_id = membership_new[i];
 		new_centers_len[cluster_id]++;
 		if (membership_new[i] != membership[i])
@@ -247,26 +247,26 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
 		}
 #ifdef CPU_CENTER_REDUCE
 		for (j = 0; j < nfeatures; j++)
-		{			
+		{
 			new_centers[cluster_id][j] += feature[i][j];
 		}
 #endif
 	}
-	
 
-#ifdef BLOCK_DELTA_REDUCE	
-    /*** calculate global sums from per block sums for delta and the new centers ***/    
-	
+
+#ifdef BLOCK_DELTA_REDUCE
+    /*** calculate global sums from per block sums for delta and the new centers ***/
+
 	//debug
 	//printf("\t \t reducing %d block sums to global sum \n",num_blocks_perdim * num_blocks_perdim);
     for(i = 0; i < num_blocks_perdim * num_blocks_perdim; i++) {
 		//printf("block %d delta is %d \n",i,block_deltas_h[i]);
         delta += block_deltas_h[i];
     }
-        
+
 #endif
-#ifdef BLOCK_CENTER_REDUCE	
-	
+#ifdef BLOCK_CENTER_REDUCE
+
 	for(int j = 0; j < nclusters;j++) {
 		for(int k = 0; k < nfeatures;k++) {
 			block_new_centers[j*nfeatures + k] = 0.f;
@@ -280,7 +280,7 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
 			}
 		}
     }
-	
+
 
 #ifdef CPU_CENTER_REDUCE
 	//debug
@@ -296,14 +296,14 @@ kmeansCuda(float  **feature,				/* in: [npoints][nfeatures] */
 #ifdef BLOCK_CENTER_REDUCE
 	for(int j = 0; j < nclusters;j++) {
 		for(int k = 0; k < nfeatures;k++)
-			new_centers[j][k]= block_new_centers[j*nfeatures + k];		
+			new_centers[j][k]= block_new_centers[j*nfeatures + k];
 	}
 #endif
 
 #endif
 
 	return delta;
-	
+
 }
-/* ------------------- kmeansCuda() end ------------------------ */    
+/* ------------------- kmeansCuda() end ------------------------ */
 

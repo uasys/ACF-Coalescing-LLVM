@@ -9,36 +9,36 @@ done
 echo "Benchmark, Div TP, Div FP, Div FN, Col TP, Col FP, Col FN"
 for f in $( ls profileData ); do
   echo -n "$f"
-  DD=${CURDIR}/gcheckData/$f
+  DD="${CURDIR}/gcheckData/$f"
   mkdir -p $DD
   cd rodinia_3.1/cuda/$f
   make clean > /dev/null 2>/dev/null
-  make NVCC=${CURDIR}/gpu-check 2> $DD/tmp > $DD/tmp
-  awk '/Divergence Issues:/{flag=1;next}/GPU-Check ran successfully/{flag=0}flag' $DD/tmp > $DD/divergent
-  awk '/Memory Coalescing Issues:/{flag=1;next}/Divergence Issues:/{flag=0}flag' $DD/tmp > $DD/uncoalesced
+  make NVCC=${CURDIR}/gpu-check 2> "$DD/tmp" > "$DD/tmp"
+  awk '/Divergence Issues:/{flag=1;next}/GPU-Check ran successfully/{flag=0}flag' "$DD/tmp" > "$DD/divergent"
+  awk '/Memory Coalescing Issues:/{flag=1;next}/Divergence Issues:/{flag=0}flag' "$DD/tmp" > "$DD/uncoalesced"
   cd $CURDIR
   #Drop preceding ./
-  sed -i 's/\.\///g' $DD/divergent
-  sed -i 's/\.\///g' $DD/uncoalesced
+  sed -i 's/.*\///g' "$DD/divergent"
+  sed -i 's/.*\///g' "$DD/uncoalesced"
   #Sort and Unique results
-  cat $DD/divergent | sort | uniq -u > $DD/divergent.uniq
-  mv $DD/divergent.uniq $DD/divergent
-  cat $DD/uncoalesced | sort | uniq -u > $DD/uncoalesced.uniq
-  mv $DD/uncoalesced.uniq $DD/uncoalesced
+  cat "$DD/divergent" | sort | uniq > "$DD/divergent.uniq"
+  mv "$DD/divergent.uniq" "$DD/divergent"
+  cat "$DD/uncoalesced" | sort | uniq > "$DD/uncoalesced.uniq"
+  mv "$DD/uncoalesced.uniq" "$DD/uncoalesced"
 
   #Print results
   echo -n ", "
-  comm -1 -2 ${CURDIR}/profileData/$f/divergent $DD/divergent | wc -l | tr -d '\n'
+  comm -1 -2 "${CURDIR}/profileData/$f/divergent" "$DD/divergent" | wc -l | tr -d '\n'
   echo -n ", "
-  diff ${CURDIR}/profileData/$f/divergent $DD/divergent | grep "^>" | wc -l | tr -d '\n'
+  diff "${CURDIR}/profileData/$f/divergent" "$DD/divergent" | grep "^>" | wc -l | tr -d '\n'
   echo -n ", "
-  diff ${CURDIR}/profileData/$f/divergent $DD/divergent | grep "^<" | wc -l | tr -d '\n'
+  diff "${CURDIR}/profileData/$f/divergent" "$DD/divergent" | grep "^<" | wc -l | tr -d '\n'
   echo -n ", "
-  comm -1 -2 ${CURDIR}/profileData/$f/uncoalesced $DD/uncoalesced | wc -l | tr -d '\n'
+  comm -1 -2 "${CURDIR}/profileData/$f/uncoalesced" "$DD/uncoalesced" | wc -l | tr -d '\n'
   echo -n ", "
-  diff ${CURDIR}/profileData/$f/uncoalesced $DD/uncoalesced | grep "^>" | wc -l | tr -d '\n'
+  diff "${CURDIR}/profileData/$f/uncoalesced" "$DD/uncoalesced" | grep "^>" | wc -l | tr -d '\n'
   echo -n ", "
-  diff ${CURDIR}/profileData/$f/uncoalesced $DD/uncoalesced | grep "^<" | wc -l | tr -d '\n'
+  diff "${CURDIR}/profileData/$f/uncoalesced" "$DD/uncoalesced" | grep "^<" | wc -l | tr -d '\n'
   echo
 
 done
