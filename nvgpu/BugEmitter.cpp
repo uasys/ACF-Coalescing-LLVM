@@ -12,6 +12,7 @@
 #include <fstream>
 #include <cxxabi.h>
 
+#define MACHINE_READABLE
 
 using namespace llvm;
 using namespace std;
@@ -40,6 +41,9 @@ bool printline(string filename, int lineNumber) {
 
 void gpucheck::emitWarning(string warning, Instruction* i, Severity sev) {
   DILocation *Loc = i->getDebugLoc();
+#ifdef MACHINE_READABLE
+  errs() << Loc->getFilename() << ":" << Loc->getLine() << "\n";
+#else
   string funcName = demangle(i->getParent()->getParent()->getName().str());
   string sevStr;
   switch(sev) {
@@ -68,4 +72,5 @@ void gpucheck::emitWarning(string warning, Instruction* i, Severity sev) {
     errs() << "\n";
 
   }
+#endif
 }
