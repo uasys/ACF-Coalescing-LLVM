@@ -2,6 +2,7 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
+#include "llvm/Analysis/BlockFrequencyInfo.h"
 
 #include "ThreadDepAnalysis.h"
 #include "ThreadValueAnalysis.h"
@@ -16,9 +17,9 @@ namespace gpucheck {
       static char ID;
       BranchDivergeAnalysis() : ModulePass(ID) {}
       void getAnalysisUsage(AnalysisUsage &AU) const {
-        AU.setPreservesAll();
         AU.addRequired<ThreadDependence>();
         AU.addRequired<ThreadValueAnalysis>();
+        AU.setPreservesAll();
       }
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
@@ -26,6 +27,8 @@ namespace gpucheck {
     private:
       ThreadDependence *TD;
       ThreadValueAnalysis *TV;
+
+      bool isBoundaryCheck(CmpInst* CI);
   };
 
 }

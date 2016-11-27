@@ -36,7 +36,8 @@ namespace gpucheck {
 
       // Helper methods
       Value* PHISelectEdge(PHINode *PHI, APInt threadID, map<Value *, APInt>& knownValues);
-      Value* CallSelectEdge(CallInst *CI, APInt threadID, map<Value *, APInt>& knownValues);
+      Value* CallSelectEdge(CallInst *CI, Function &F, APInt threadID, map<Value *, APInt>& knownValues);
+      BasicBlock* selectReachableBlock(vector<BasicBlock*>&incoming, APInt threadID, Function& F, map<Value *, APInt>& known);
 
       // Exact Value evaluation
       const APInt* evaluateForThreadIdx(Value *v, APInt threadID, map<Value *, APInt>& knownValues);

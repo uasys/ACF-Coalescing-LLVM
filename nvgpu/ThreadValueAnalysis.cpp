@@ -178,9 +178,6 @@ const APInt* ThreadValueAnalysis::evaluateForThreadIdx(Value *v, APInt threadID,
 }
 
 Value* ThreadValueAnalysis::PHISelectEdge(PHINode *P, APInt threadID, map<Value *, APInt>& known) {
-  // Get the dominator tree for this function
-  DominatorTree *DT = &getAnalysis<DominatorTreeWrapperPass>(*(P->getParent()->getParent())).getDomTree();
-
   // To prevent an infinite loop, we inject a dummy value here
   if(auto zero = evaluateForThreadIdx(P->getIncomingValue(0), threadID, known)) {
     known.insert(make_pair(P, *zero));
@@ -192,6 +189,36 @@ Value* ThreadValueAnalysis::PHISelectEdge(PHINode *P, APInt threadID, map<Value 
   vector<BasicBlock *> incoming;
   for(auto b=P->block_begin(),e=P->block_end(); b!=e; ++b)
     incoming.push_back(*b);
+
+  return P->getIncomingValueForBlock(
+    selectReachableBlock(incoming, threadID, *(P->getParent()->getParent()), known)
+  );
+}
+
+Value* ThreadValueAnalysis::CallSelectEdge(CallInst *CI, Function& F, APInt threadID, map<Value *, APInt>& known) {
+  // Collect all of the incoming edges
+  vector<BasicBlock *> incoming;
+  map<BasicBlock *, Value *> retmap;
+
+  for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
+    for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
+      if(auto R=dyn_cast<ReturnInst>(i)) {
+        incoming.push_back(R->getParent());
+        retmap[R->getParent()]=R->getReturnValue();
+      }
+    }
+  }
+
+  if(incoming.size() == 0)
+    // No function body
+    return nullptr;
+
+  return retmap[selectReachableBlock(incoming, threadID, F, known)];
+}
+
+BasicBlock *ThreadValueAnalysis::selectReachableBlock(vector<BasicBlock*>& incoming, APInt threadID, Function& F, map<Value *, APInt>& known) {
+  // Get the dominator tree for this function
+  DominatorTree *DT = &getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
 
   // Eliminate incoming edges by removing conditions
   while(incoming.size() > 1) {
@@ -230,7 +257,8 @@ Value* ThreadValueAnalysis::PHISelectEdge(PHINode *P, APInt threadID, map<Value 
 
       } else if(!DT->properlyDominates(dom, *b)) {
         auto cur = b--;
-        incoming.erase(cur);
+        incoming.erase(b);
+        b = cur;
         eliminated = true;
       }
     }
@@ -252,7 +280,7 @@ const APInt* ThreadValueAnalysis::evaluatePHI(PHINode *P, APInt threadID, map<Va
     known.erase(P);
     return nullptr;
   } else {
-    known.insert(make_pair(P, *val));
+    known[P] = *val;
     return &known.find(P)->second;
   }
 }
@@ -392,11 +420,26 @@ const APInt* ThreadValueAnalysis::evaluateCall(CallInst *CI, APInt threadID, map
           known.insert(make_pair(&*param, *val));
       ++arg;
     }
-    // TODO: This has a potential recursion problem
-    for(auto b=F->begin(),e=F->end(); b!=e; ++b)
-      for(auto i=b->begin(),e=b->end(); i!=e; ++i)
-        if(auto ret=dyn_cast<ReturnInst>(i))
-          return evaluateForThreadIdx(ret->getOperand(0), threadID, known);
+
+    // Insert a dummy value for us to break recursive loops
+    if(CI->getType()->isIntegerTy())
+      known.insert(make_pair(CI, APInt(CI->getType()->getIntegerBitWidth(),0)));
+
+    // Figure out the return statement
+    Value *incoming = CallSelectEdge(CI, *F, threadID, known);
+    const APInt *val = nullptr;
+    if(incoming)
+      // We may not find an incoming edge for this call...
+      val = evaluateForThreadIdx(incoming, threadID, known);
+
+    if(val == nullptr) {
+      // erase our dummy value
+      known.erase(CI);
+      return nullptr;
+    } else {
+      known[CI] = *val;
+      return &known.find(CI)->second;
+    }
   }
   return nullptr;
 }
@@ -489,6 +532,9 @@ const APInt* ThreadValueAnalysis::threadDepPortion(Value *v, APInt threadID, map
         return &known.find(v)->second;
       }
     }
+    if(C->getType()->isPointerTy()) {
+      return threadDepPortion(C->getOperand(0), threadID, known, evalKnown, td);
+    }
   }
 
   if(auto C=dyn_cast<CmpInst>(v)) {
@@ -537,16 +583,29 @@ const APInt* ThreadValueAnalysis::threadDepCall(CallInst *CI, APInt threadID, ma
     // If call with body, bind args to formals
     auto arg=CI->arg_begin();
     for(auto param=F->arg_begin(),e=F->arg_end(); param!=e; ++param) {
-      const APInt *val = evaluateForThreadIdx(arg->get(), threadID, evalKnown);
+      const APInt *val = threadDepPortion(arg->get(), threadID, known, evalKnown, td);
       if(val != nullptr)
           known.insert(make_pair(&*param, *val));
       ++arg;
     }
-    // TODO: This has a potential recursion problem
-    for(auto b=F->begin(),e=F->end(); b!=e; ++b)
-      for(auto i=b->begin(),e=b->end(); i!=e; ++i)
-        if(auto ret=dyn_cast<ReturnInst>(i))
-          return threadDepPortion(ret->getOperand(0), threadID, known, evalKnown, td);
+    // Insert a dummy value for us to break recursive loops
+    if(CI->getType()->isIntegerTy())
+      known.insert(make_pair(CI, APInt(CI->getType()->getIntegerBitWidth(),0)));
+
+    // Figure out the return statement
+    Value *incoming = CallSelectEdge(CI, *F, threadID, known);
+    const APInt *val = nullptr;
+    if(incoming)
+      val = threadDepPortion(incoming, threadID, known, evalKnown, td);
+
+    if(val == nullptr) {
+      // erase our dummy value
+      known.erase(CI);
+      return nullptr;
+    } else {
+      known[CI] = *val;
+      return &known.find(CI)->second;
+    }
   }
   // Indirect call, just give up
   return nullptr;
@@ -722,7 +781,14 @@ const APInt* ThreadValueAnalysis::threadDepLoad(LoadInst *L, APInt threadID, map
       const APInt *sIn = threadDepPortion(S->getValueOperand(), threadID, known, evalKnown, td);
       // Assume this load takes on the value of this matching store
       if(sIn != nullptr) {
-        known.insert(make_pair(L, *sIn));
+        DEBUG(
+          errs() << "Matched store : ";
+          S->dump();
+          errs() << "to load : ";
+          L->dump();
+          errs() << "Value ["<< threadID << "] = " << *sIn << "\n";
+        );
+        known[L] = *sIn;
         return &known.find(L)->second;
       }
     }

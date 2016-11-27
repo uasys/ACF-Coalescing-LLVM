@@ -5,6 +5,8 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/IntrinsicInst.h"
 
 #include "MemCoalesceAnalysis.h"
 #include "BugEmitter.h"
@@ -26,6 +28,7 @@ using namespace gpucheck;
 bool MemCoalesceAnalysis::runOnModule(Module &M) {
   TD = &getAnalysis<ThreadDependence>();
   TV = &getAnalysis<ThreadValueAnalysis>();
+  ASA = &getAnalysis<AddrSpaceAnalysis>();
   // Run over each GPU function
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     //if(isKernelFunction(*f))
@@ -39,48 +42,80 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
   for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
     for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
       if(TD->isDependent(&*i)) {
-        Value *ptr = nullptr;
-        if(auto L=dyn_cast<LoadInst>(i)) {
-          ptr = L->getOperand(L->getPointerOperandIndex());
-        }
-        if(auto S=dyn_cast<StoreInst>(i)) {
-          ptr = S->getOperand(S->getPointerOperandIndex());
-        }
-        if(ptr != nullptr) {
-          MemAccess tpe = getAccessType(&*i, ptr);
-          if(tpe == Update && isa<StoreInst>(i)) {
-            // Don't report updates twice
-            continue;
-          }
-          // We have a memory access to inspect
-          float requests = requestsPerWarp(ptr);
-          if(requests > COALESCE_THRES) {
-            Severity sev;
-            emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev);
-          }
 
-          DEBUG(errs() << "Found a memory access:\n");
-          DEBUG(i->dump());
-          DEBUG(errs() << "\n Memory requests required per warp: " <<
-              requestsPerWarp(ptr) << "\n");
-        }
+        if(auto L=dyn_cast<LoadInst>(i))
+          testLoad(L);
+
+        if(auto S=dyn_cast<StoreInst>(i))
+          testStore(S);
+
+        if(auto CI=dyn_cast<CallInst>(i))
+          testCall(CI);
       }
     }
   }
   return false;
 }
 
+void MemCoalesceAnalysis::testCall(CallInst *CI) {
+  if(auto MC = dyn_cast<MemCpyInst>(CI))
+    if(!testAccess(MC, MC->getDest()))
+      testAccess(MC, MC->getSource());
+
+  if(auto MM = dyn_cast<MemMoveInst>(CI))
+    if(!testAccess(MM, MM->getDest()))
+      testAccess(MM, MM->getSource());
+}
+
+void MemCoalesceAnalysis::testLoad(LoadInst *L) {
+  testAccess(L, L->getPointerOperand());
+}
+
+void MemCoalesceAnalysis::testStore(StoreInst *S) {
+  testAccess(S, S->getPointerOperand());
+}
+
+bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
+  DEBUG(errs() << "Found a memory access:\n");
+  DEBUG(i->dump());
+  DEBUG(errs() << "\n Memory requests required per warp: " <<
+      requestsPerWarp(ptr) << "\n");
+
+  // Ignore shared/constant memory accesses
+  if(!ASA->mayBeGlobal(i))
+    return false;
+  MemAccess tpe = getAccessType(i, ptr);
+  if(tpe == Update && isa<StoreInst>(i)) {
+    // Don't report updates twice
+    return false;
+  }
+  // We have a memory access to inspect
+  float requests = requestsPerWarp(ptr);
+  if(requests > COALESCE_THRES) {
+    Severity sev;
+    emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev);
+    return true;
+  }
+
+  return false;
+}
+
 MemAccess MemCoalesceAnalysis::getAccessType(Instruction *i, Value *address) {
   bool read = false;
   bool written = false;
+  bool memcpy = false;
   for(auto user=address->user_begin(),e=address->user_end(); user != e; ++user) {
     if(auto u=dyn_cast<Instruction>(*user)) {
       if(isa<LoadInst>(u) && u->getParent() == i->getParent())
         read = true;
       if(isa<StoreInst>(u) && u->getParent() == i->getParent())
         written = true;
+      if(isa<CallInst>(u) && u->getParent() == i->getParent())
+        memcpy = true;
     }
   }
+  if(memcpy)
+    return MemAccess::Copy;
   if(read && written)
     return MemAccess::Update;
   if(read)
@@ -103,6 +138,9 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requests
       break;
     case Update:
       prefix = "In update to "+getValueName(ptr)+", ";
+      break;
+    case Copy:
+      prefix = "In copy to "+getValueName(ptr)+", ";
       break;
   }
 

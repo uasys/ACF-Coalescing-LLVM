@@ -42,6 +42,8 @@ bool printline(string filename, int lineNumber) {
 void gpucheck::emitWarning(string warning, Instruction* i, Severity sev) {
   DILocation *Loc = i->getDebugLoc();
 #ifdef MACHINE_READABLE
+  if(!Loc)
+    return;
   errs() << Loc->getFilename() << ":" << Loc->getLine() << "\n";
 #else
   string funcName = demangle(i->getParent()->getParent()->getName().str());
