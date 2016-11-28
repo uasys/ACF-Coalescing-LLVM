@@ -1,4 +1,0 @@
-Q0: Begin
-Qf: End
-
-Delta_i: (Begin, b, State2), (State2, a, End)
