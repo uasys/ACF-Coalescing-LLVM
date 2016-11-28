@@ -3,6 +3,7 @@ import argparse
 import subprocess
 import sys
 import glob, os
+import os.path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("files", metavar='File', nargs='+')
