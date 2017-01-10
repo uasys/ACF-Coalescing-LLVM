@@ -4,4 +4,7 @@ add_library(GpuAnalysis MODULE ThreadDepAnalysis.cpp
                                MemCoalesceAnalysis.cpp
                                AddrSpaceAnalysis.cpp
                                BugEmitter.cpp
-                               Utilities.cpp)
+                               Utilities.cpp
+                               OffsetVal.cpp
+                               OffsetPropagation.cpp
+)
