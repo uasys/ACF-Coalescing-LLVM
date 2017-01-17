@@ -1,16 +1,31 @@
 #include "OffsetPropagation.h"
-#include "llvm/Support/raw_os_ostream.h"
+#include "OffsetOps.h"
+#include "raw_os_ostream.h"
 
 namespace gpucheck {
+  /************************************************
+   * OffsetVal
+   ************************************************/
+  void OffsetVal::print(std::ostream& os) const {
+    os << "<ERROR BaseClass print>>";
+  }
+  const llvm::APInt& OffsetVal::constVal() const {
+    assert(false);
+  }
+
+  bool OffsetVal::isConst() const {
+    assert(false);
+  }
 
   /************************************************
    * ConstOffsetVal
    ************************************************/
   void ConstOffsetVal::print(std::ostream& os) const {
-    os << this->constant;
+    llvm::raw_os_ostream ros(os);
+    ros << this->intVal;
   }
   const llvm::APInt& ConstOffsetVal::constVal() const {
-    return this->constant->getUniqueInteger();
+    return this->intVal;
   }
 
   /************************************************
@@ -21,6 +36,17 @@ namespace gpucheck {
     this->inst->printAsOperand(ros, true, this->inst->getModule());
   }
   const llvm::APInt& InstOffsetVal::constVal() const {
+    assert(false);
+  }
+
+  /************************************************
+   * ArgOffsetVal
+   ************************************************/
+  void ArgOffsetVal::print(std::ostream& os) const {
+    llvm::raw_os_ostream ros(os);
+    this->arg->printAsOperand(ros, true, this->arg->getParent()->getParent());
+  }
+  const llvm::APInt& ArgOffsetVal::constVal() const {
     assert(false);
   }
 
@@ -47,7 +73,8 @@ namespace gpucheck {
       case OffsetOperator::Mul: return "*";
       case OffsetOperator::SDiv:
       case OffsetOperator::UDiv: return "/";
-      case OffsetOperator::Mod: return "%";
+      case OffsetOperator::SRem:
+      case OffsetOperator::URem: return "%";
       case OffsetOperator::And: return "&&";
       case OffsetOperator::Or: return "||";
       case OffsetOperator::Xor: return "^";
@@ -61,14 +88,15 @@ namespace gpucheck {
       case OffsetOperator::UGT: return ">";
       case OffsetOperator::SGE:
       case OffsetOperator::UGE: return ">=";
+      case OffsetOperator::end: assert(false);
     }
   }
 
   void BinOpOffsetVal::print(std::ostream& os) const {
-    os << '(' << lhs << ' ' << getPrintOp() << ' ' << rhs << ')';
+    os << '(' << *lhs << ' ' << getPrintOp() << ' ' << *rhs << ')';
   }
   bool BinOpOffsetVal::isConst() const {
-    return lhs.isConst() && rhs.isConst();
+    return false;
   }
   const llvm::APInt& BinOpOffsetVal::constVal() const {
     assert(false);

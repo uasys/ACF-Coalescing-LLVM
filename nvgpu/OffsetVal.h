@@ -2,6 +2,7 @@
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Instruction.h"
+#include "llvm/Support/Casting.h"
 
 #ifndef OFFSET_VAL_H
 #define OFFSET_VAL_H
@@ -21,7 +22,19 @@ namespace gpucheck {
    * Generic superclass for offsets
    */
   class OffsetVal {
+    // dyn_cast support
     public:
+      enum OVKind {
+        OV_Const,
+        OV_Inst,
+        OV_Arg,
+        OV_BinOp,
+        OV_Unk
+      };
+    private:
+      const OVKind kind;
+    public:
+      OffsetVal(OVKind kind) : kind(kind) {}
       /**
        * Returns true if this OffsetVal contains only a constant part
        */
@@ -34,36 +47,61 @@ namespace gpucheck {
        * Print a human-readable representation of this value
        */
       virtual void print(std::ostream& stream) const;
+      OVKind getKind() const { return kind; }
   };
+
+  /**
+   * Declare a shorthand pointer type
+   */
+  typedef std::shared_ptr<OffsetVal> OffsetValPtr;
 
   /**
    * OffsetVal specialization for constant values
    */
   class ConstOffsetVal : public OffsetVal {
     private:
-      const llvm::Constant* constant;
+      const llvm::APInt intVal;
     public:
-      ConstOffsetVal(llvm::Constant* c) : constant(c) {
-        assert(c != nullptr);
-      }
+      ConstOffsetVal(llvm::Constant* c) : OffsetVal(OV_Const), intVal(c->getUniqueInteger()) { }
+      ConstOffsetVal(llvm::APInt a) : OffsetVal(OV_Const), intVal(a) { }
+      ConstOffsetVal(int i) : OffsetVal(OV_Const), intVal(llvm::APInt(32, i, true)) { }
       bool isConst() const {return true;}
       const llvm::APInt& constVal() const;
       void print(std::ostream& stream) const;
+
+      static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Const; }
   };
 
   /**
    * OffsetVal specialization for runtime-known values
    */
   class InstOffsetVal : public OffsetVal {
-    private:
-      const llvm::Instruction* inst;
     public:
-      InstOffsetVal(llvm::Instruction* i) : inst(i) {
+      const llvm::Instruction* inst;
+      InstOffsetVal(llvm::Instruction* i) : OffsetVal(OV_Inst), inst(i) {
         assert(i != nullptr);
       }
       bool isConst() const {return false;}
       const llvm::APInt& constVal() const;
       void print(std::ostream& stream) const;
+
+      static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Inst; }
+  };
+
+  /**
+   * OffsetVal specialization for function parameters
+   */
+  class ArgOffsetVal : public OffsetVal {
+    public:
+      const llvm::Argument* arg;
+      ArgOffsetVal(llvm::Argument* a) : OffsetVal(OV_Arg), arg(a) {
+        assert(a != nullptr);
+      }
+      bool isConst() const {return false;}
+      const llvm::APInt& constVal() const;
+      void print(std::ostream& stream) const;
+
+      static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Arg; }
   };
 
   /**
@@ -72,14 +110,16 @@ namespace gpucheck {
    */
   class UnknownOffsetVal : public OffsetVal {
     private:
-      const llvm::Instruction* inst;
     public:
-      UnknownOffsetVal(llvm::Instruction* i) : inst(i) {
+      const llvm::Instruction* inst;
+      UnknownOffsetVal(llvm::Instruction* i) : OffsetVal(OV_Unk), inst(i) {
         assert(i != nullptr);
       }
       bool isConst() const {return false;}
       const llvm::APInt& constVal() const;
       void print(std::ostream& stream) const;
+
+      static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Unk; }
   };
 
   /**
@@ -114,14 +154,16 @@ namespace gpucheck {
       const std::string getPrintOp() const;
 
     public:
-      const OffsetVal& lhs;
-      const OffsetVal& rhs;
+      const OffsetValPtr lhs;
+      const OffsetValPtr rhs;
       const OffsetOperator op;
-      BinOpOffsetVal(const OffsetVal& lhs, OffsetOperator op, const OffsetVal& rhs) : lhs(lhs), rhs(rhs), op(op) {}
+      BinOpOffsetVal(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs) :
+        OffsetVal(OV_BinOp), lhs(lhs), rhs(rhs), op(op) {}
       bool isConst() const;
       const llvm::APInt& constVal() const;
       void print(std::ostream& stream) const;
 
+      static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_BinOp; }
   };
 }
 #endif

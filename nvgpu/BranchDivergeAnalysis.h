@@ -5,7 +5,7 @@
 #include "llvm/Analysis/BlockFrequencyInfo.h"
 
 #include "ThreadDepAnalysis.h"
-#include "ThreadValueAnalysis.h"
+#include "OffsetPropagation.h"
 
 #ifndef BRANCH_DIVERGE_H
 #define BRANCH_DIVERGE_H
@@ -18,7 +18,7 @@ namespace gpucheck {
       BranchDivergeAnalysis() : ModulePass(ID) {}
       void getAnalysisUsage(AnalysisUsage &AU) const {
         AU.addRequired<ThreadDependence>();
-        AU.addRequired<ThreadValueAnalysis>();
+        AU.addRequired<OffsetPropagation>();
         AU.setPreservesAll();
       }
       bool runOnModule(Module &M);
@@ -26,9 +26,8 @@ namespace gpucheck {
       float getDivergence(BranchInst *BI);
     private:
       ThreadDependence *TD;
-      ThreadValueAnalysis *TV;
+      OffsetPropagation *OP;
 
-      bool isBoundaryCheck(CmpInst* CI);
   };
 
 }

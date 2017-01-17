@@ -9,6 +9,7 @@
 
 #include "BranchDivergeAnalysis.h"
 #include "BugEmitter.h"
+#include "OffsetOps.h"
 #include "Utilities.h"
 
 using namespace std;
@@ -21,7 +22,7 @@ using namespace gpucheck;
 
 bool BranchDivergeAnalysis::runOnModule(Module &M) {
   TD = &getAnalysis<ThreadDependence>();
-  TV = &getAnalysis<ThreadValueAnalysis>();
+  OP = &getAnalysis<OffsetPropagation>();
   // Run over each kernel function
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     if(!f->isDeclaration()) {
@@ -63,85 +64,50 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
 
 float BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
   assert(BI->isConditional());
-  // Special-case boundary checks
-  if(auto CMP=dyn_cast<CmpInst>(BI->getCondition())) {
-    if(isBoundaryCheck(CMP))
-      return 1.0/32.0f; // can only flip once!
-  }
 
-  int divergent = 0;
-  for(int warp=0; warp<32; warp++) {
-    APInt *out = TV->evaluateForThreadIdx(BI->getCondition(), warp*32);
-    if(out == nullptr) {
-      divergent++;
-      continue;
+  // Get the symbolic offset for the branch pointer
+  OffsetValPtr cond_offset = OP->getOrCreateVal(BI->getCondition());
+
+  DEBUG(errs() << "Analyzing possibly divergent branch condition:\n    " << *BI->getCondition() << "\n");
+
+  vector<OffsetValPtr> all_paths = OP->inContexts(cond_offset);
+  DEBUG(errs() << "Context-sensitive analysis generated " << all_paths.size() << " contexts\n");
+
+  float maxDivergence = 0.0f;
+  for(auto path=all_paths.begin(),e=all_paths.end(); path != e; ++path) {
+    // Apply some (arbitrary) grid boundaries
+    OffsetValPtr gridCtx = OP->inGridContext(*path, 256, 32, 32, 1, 1, 1);
+    // Perform as much simplification as we can early
+    OffsetValPtr simp = simplifyOffsetVal(sumOfProducts(gridCtx));
+
+    // Calculate the difference between threads 0 and 1
+    OffsetValPtr threadDiff = cancelDiffs(make_shared<BinOpOffsetVal>(
+        OP->inThreadContext(simp,1,0,0,0,0,0),
+        Sub,
+        OP->inThreadContext(simp,0,0,0,0,0,0)), *TD);
+
+    if(!threadDiff->isConst()) {
+      DEBUG(errs() << "Cannot generate constant for branch. Expression follows.\n");
+      DEBUG(cerr << *threadDiff <<"\n");
+      return 1.0; // Branch cannot be analyzed in at least 1 context
     }
-    for(int tid=1; tid<32; tid++) {
-      APInt *next = TV->evaluateForThreadIdx(BI->getCondition(), warp*32+tid);
-      if(next == nullptr) {
-        divergent++;
-        break;
-      }
-      if(!next->eq(*out)) {
-        divergent++;
-        delete next;
-        break;
+
+    int divergent = 0;
+    for(int warp=0; warp<8; warp++) {
+      OffsetValPtr warpBase = OP->inThreadContext(simp, warp*32, 0, 0, 0, 0, 0);
+      for(int i=1; i<32; i++) {
+        OffsetValPtr threadBase = OP->inThreadContext(simp, warp*32+i, 0, 0, 0, 0, 0);
+        OffsetValPtr threadDiff = cancelDiffs(make_shared<BinOpOffsetVal>(warpBase, Sub, threadBase), *TD);
+        if(!threadDiff->isConst() || threadDiff->constVal() != 0) {
+          divergent++;
+          break; // We found divergence, we're done with the warp
+        }
       }
     }
-    delete out;
+    if(divergent/8.0f > maxDivergence)
+      maxDivergence = divergent/8.0f;
   }
-  return divergent/32.0f;
-}
-
-bool BranchDivergeAnalysis::isBoundaryCheck(CmpInst *CI) {
-  // Directional comparison
-  switch(CI->getPredicate()) {
-    case CmpInst::ICMP_SLE:
-    case CmpInst::ICMP_SLT:
-    case CmpInst::ICMP_SGE:
-    case CmpInst::ICMP_SGT:
-    case CmpInst::ICMP_ULE:
-    case CmpInst::ICMP_ULT:
-    case CmpInst::ICMP_UGE:
-    case CmpInst::ICMP_UGT:
-      break;
-    default:
-      return false;
-  }
-  Value *td;
-  // Only a single thread-dependent value
-  if(TD->isDependent(CI->getOperand(0)) && !TD->isDependent(CI->getOperand(1))) {
-    td = CI->getOperand(0);
-  } else if(!TD->isDependent(CI->getOperand(0)) && TD->isDependent(CI->getOperand(1))) {
-    td = CI->getOperand(1);
-  } else {
-    return false;
-  }
-
-  // The thread-dependent value must be ascending or descending
-  bool ascending = true;
-  bool descending = true;
-
-  APInt *last = TV->threadDepPortion(td, 0);
-  if(!last)
-    return false; // Not evaluatable
-
-  for(int tid = 1; tid<256; tid++) {
-    if(!ascending && !descending)
-      break;
-
-    APInt *val = TV->threadDepPortion(td, tid);
-    if(!val)
-      return false;
-
-    ascending &= last->slt(*val);
-    descending &= last->sgt(*val);
-    delete last;
-    last = val;
-  }
-
-  delete last;
-  return ascending || descending;
+  return maxDivergence;
 }
 
 char BranchDivergeAnalysis::ID = 0;
