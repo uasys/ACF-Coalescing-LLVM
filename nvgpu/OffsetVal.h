@@ -158,7 +158,10 @@ namespace gpucheck {
       const OffsetValPtr rhs;
       const OffsetOperator op;
       BinOpOffsetVal(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs) :
-        OffsetVal(OV_BinOp), lhs(lhs), rhs(rhs), op(op) {}
+        OffsetVal(OV_BinOp), lhs(lhs), rhs(rhs), op(op) {
+          assert(lhs != nullptr);
+          assert(rhs != nullptr);
+        }
       bool isConst() const;
       const llvm::APInt& constVal() const;
       void print(std::ostream& stream) const;

@@ -11,6 +11,7 @@
 #include "MemCoalesceAnalysis.h"
 #include "BugEmitter.h"
 #include "Utilities.h"
+#include "OffsetOps.h"
 
 #include <vector>
 #include <utility>
@@ -24,10 +25,11 @@ using namespace gpucheck;
 #define DEBUG_TYPE "coalesce"
 
 #define COALESCE_THRES 4.0f
+#define ACCESS_SIZE 256
 
 bool MemCoalesceAnalysis::runOnModule(Module &M) {
   TD = &getAnalysis<ThreadDependence>();
-  TV = &getAnalysis<ThreadValueAnalysis>();
+  OP = &getAnalysis<OffsetPropagation>();
   ASA = &getAnalysis<AddrSpaceAnalysis>();
   // Run over each GPU function
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
@@ -76,10 +78,6 @@ void MemCoalesceAnalysis::testStore(StoreInst *S) {
 }
 
 bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
-  DEBUG(errs() << "Found a memory access:\n");
-  DEBUG(i->dump());
-  DEBUG(errs() << "\n Memory requests required per warp: " <<
-      requestsPerWarp(ptr) << "\n");
 
   // Ignore shared/constant memory accesses
   if(!ASA->mayBeGlobal(i))
@@ -89,6 +87,10 @@ bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
     // Don't report updates twice
     return false;
   }
+  DEBUG(errs() << "Found a memory access:\n");
+  DEBUG(i->dump());
+  DEBUG(errs() << "\n Memory requests required per warp: " <<
+      requestsPerWarp(ptr) << "\n");
   // We have a memory access to inspect
   float requests = requestsPerWarp(ptr);
   if(requests > COALESCE_THRES) {
@@ -144,15 +146,17 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requests
       break;
   }
 
+  /*
   APInt *val[1024];
   for(int i = 0; i<1024; i++)
     val[i] = TV->threadDepPortion(ptr, i);
 
   for(int i = 0; i<1024; i++)
     if(val[i] == nullptr) {
-      DEBUG(errs() << "nullptr at thread " << i << "\n";);
+      */
       severity = Severity::SEV_UNKNOWN;
       return prefix + "Possible Uncoalesced Access Detected";
+      /*
     }
 
   APInt stride = *val[1]-*val[0];
@@ -178,76 +182,79 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requests
     severity = Severity::SEV_MIN;
   }
   return prefix + "Uncoalesced Memory Access requires " + to_string(reqs) + " requests/warp";
+  */
 }
 
 float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
-  int requestCount = 0;
-  for(int warp = 0; warp<32; warp++) {
-    vector<pair<APInt,APInt>> requests;
-    for(int tid=0; tid<32; tid++) {
-      APInt *val = TV->threadDepPortion(ptr, warp*32+tid);
 
-      if(val == nullptr) {
-        requestCount++;
-        continue;
-      }
+  OffsetValPtr ptr_offset = OP->getOrCreateVal(ptr);
+  DEBUG(errs() << "Analyzing possibly uncoalesced access:\n    " << *ptr << "\n");
+  vector<OffsetValPtr> all_paths = OP->inContexts(ptr_offset);
+  DEBUG(errs() << "Context-sensitive analysis generated " << all_paths.size() << " contexts\n");
 
-      // Try to fit it into existing requests
-      bool fits = false;
-      for(auto r=requests.begin(),e=requests.end();r!=e;++r) {
-        if(val->sge(r->first) && val->sle(r->second - 4)) {
-          // Fits inside existing request
-          fits = true;
-          break;
-        } else if(val->sge(r->first - 4) && val->sle(r->second - 4)) {
-          // Fits against lower edge
-          fits = true;
-          r->first = *val;
-        } else if(val->sge(r->first) && val->sle(r->second)) {
-          // Fits against upper edge
-          fits = true;
-          r->second = *val+4;
+  float maxRequests = 0.0f;
+  for(auto path=all_paths.begin(),e=all_paths.end(); path != e; ++path) {
+    // Apply some (arbitrary) grid boundaries
+    OffsetValPtr gridCtx = OP->inGridContext(*path, 256, 32, 32, 1, 1, 1);
+    // Perform as much simplification as we can early
+    OffsetValPtr simp = simplifyOffsetVal(sumOfProducts(gridCtx));
+
+    // Optimization: Calculate the difference between threads 0 and 1
+    OffsetValPtr threadDiff = cancelDiffs(make_shared<BinOpOffsetVal>(
+        OP->inThreadContext(simp,1,0,0,0,0,0),
+        Sub,
+        OP->inThreadContext(simp,0,0,0,0,0,0)), *TD);
+
+    if(!threadDiff->isConst()) {
+      DEBUG(errs() << "Cannot generate constant for access. Expression follows.\n");
+      DEBUG(cerr << *threadDiff <<"\n");
+      return 32.0; // Branch cannot be analyzed in at least 1 context
+    }
+
+
+    int requestCount = 0;
+    for(int warp=0; warp<8; warp++) {
+      OffsetValPtr warpBase = OP->inThreadContext(simp, warp*32, 0, 0, 0, 0, 0);
+      vector<std::pair<long long, long long>> requests;
+      for(int tid=0; tid<32; tid++) {
+        OffsetValPtr threadBase = OP->inThreadContext(simp, warp*32+tid, 0, 0, 0, 0, 0);
+        OffsetValPtr threadDiff = cancelDiffs(make_shared<BinOpOffsetVal>(warpBase, Sub, threadBase), *TD);
+
+        if(!threadDiff->isConst()) {
+          requestCount++;
+          continue;
         }
-      }
+        long long offset = threadDiff->constVal().getSExtValue();
 
-      // Otherwise create a new request
-      if(!fits) {
-        requests.push_back(make_pair(*val,*val+4));
+        bool fits = false;
+        for(auto r=requests.begin(),e=requests.end();r!=e;++r) {
+          if(offset >= r->first && offset <= r->second) {
+            fits = true;
+            break;
+          } else if(offset < r->first && offset >= r->second - ACCESS_SIZE) {
+            r->first = offset;
+            fits = true;
+            break;
+          } else if(offset + 4 > r->second && offset + 4 <= r->first + ACCESS_SIZE) {
+            r->second = offset + 4;
+            fits = true;
+            break;
+          }
+        }
+        if(!fits)
+          requests.push_back(make_pair(offset, offset + 4));
+      }
+      requestCount += requests.size();
+    }
+
+    if(requestCount/8.0f > maxRequests) {
+      maxRequests = requestCount/8.0f;
+      if(maxRequests > COALESCE_THRES) {
+        return maxRequests; // Might as well short-circuit here
       }
     }
-    // Attempt to merge requests
-    for(int i=0; i<requests.size();) {
-      bool combined = false;
-      for(int cmp=i+1; cmp<requests.size(); cmp++) {
-        if((requests[cmp].first.sle(requests[i].first) &&
-            requests[cmp].second.sge(requests[i].first)) ||
-           (requests[cmp].second.sge(requests[i].second) &&
-            requests[cmp].first.sle(requests[i].second))) {
-          // These requests definitely overlap, combine them
-          if (requests[cmp].first.slt(requests[i].first))
-            requests[i].first = requests[cmp].first;
-          if (requests[cmp].second.sgt(requests[i].second))
-            requests[i].second = requests[cmp].second;
-          // remove the second request
-          requests.erase(requests.begin()+cmp);
-          combined = true;
-        }
-      }
-      // Only move on if we didn't coalesce
-      if(!combined)
-        i++;
-    }
-    DEBUG(if(warp == 0) {
-      errs() << "Requests for address:\n";
-      ptr->dump();
-      errs() << "Known Requests: " << requests.size() << " \n";
-      for(auto r=requests.begin(),e=requests.end(); r!=e; ++r)
-        errs() << r->first << "-" << r->second << "\n";
-      errs() << "Unknown Requests: " << requestCount << "\n";
-    });
-    requestCount += requests.size();
   }
-  return requestCount / 32.0f;
+  return maxRequests / 32.0f;
 }
 
 char MemCoalesceAnalysis::ID = 0;

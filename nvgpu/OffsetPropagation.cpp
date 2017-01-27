@@ -54,6 +54,7 @@ namespace gpucheck {
     if(auto c = dyn_cast<Constant>(v)) return getOrCreateVal(c);
     if(auto l = dyn_cast<LoadInst>(v)) return getOrCreateVal(l);
     if(auto p = dyn_cast<PHINode>(v)) return getOrCreateVal(p);
+    if(auto g = dyn_cast<GetElementPtrInst>(v)) return getOrCreateVal(g);
 
     // Fallthrough, unknown instruction
     if(auto i=dyn_cast<Instruction>(v)) {
@@ -80,6 +81,57 @@ namespace gpucheck {
     OffsetValPtr rhs = getOrCreateVal(bo->getOperand(1));
     offsets[bo] = make_shared<BinOpOffsetVal>(lhs, op, rhs);
     return offsets[bo];
+  }
+
+  OffsetValPtr OffsetPropagation::getOrCreateVal(GetElementPtrInst *gep) {
+    // Find the DataLayout
+    const DataLayout& DL = gep->getModule()->getDataLayout();
+
+    // We begin with the offset equal to the base
+    OffsetValPtr offset = getOrCreateVal(gep->getPointerOperand());
+
+    // Start calculating offsets
+    Type *t = gep->getPointerOperandType();
+    for(auto i=gep->idx_begin(),e=gep->idx_end(); i!=e; ++i) {
+      OffsetValPtr idx_off;
+
+      if(auto struct_t=dyn_cast<StructType>(t)) {
+        // Calculate the offset to the struct element
+        OffsetValPtr idx = getOrCreateVal(*i);
+        assert(idx->isConst()); // Struct references can't be dynamic
+
+        int index = idx->constVal().getZExtValue();
+        assert(struct_t->getNumElements() > index);
+
+        // Update the type for next iteration
+        t = struct_t->getElementType(index);
+
+        // Calculate the offset for this index
+        int elem_off = 0;
+        for(int i=0; i<index; ++i) {
+          elem_off += DL.getTypeAllocSize(struct_t->getElementType(i));
+        }
+
+        // Our element starts at the end of the previous ones
+        idx_off = make_shared<ConstOffsetVal>(elem_off);
+
+      } else if(auto seq_t=dyn_cast<SequentialType>(t)) {
+        // Calculate the offset to the array element
+        OffsetValPtr idx = getOrCreateVal(*i);
+
+        // Calculate the size to step
+        OffsetValPtr size = make_shared<ConstOffsetVal>(DL.getTypeAllocSize(seq_t->getElementType()));
+
+        idx_off = make_shared<BinOpOffsetVal>(idx, Mul, size);
+
+        // Update the type for next iteration
+        t = seq_t->getElementType();
+      } else {
+        assert(false && "GEP must index a struct or sequence");
+      }
+      offset = make_shared<BinOpOffsetVal>(offset, Add, idx_off);
+    }
+    return offset;
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(CallInst *ci) {

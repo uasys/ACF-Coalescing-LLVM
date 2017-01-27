@@ -5,7 +5,7 @@
 #include "BugEmitter.h"
 #include "AddrSpaceAnalysis.h"
 #include "ThreadDepAnalysis.h"
-#include "ThreadValueAnalysis.h"
+#include "OffsetPropagation.h"
 
 #ifndef MEM_COALESCE_H
 #define MEM_COALESCE_H
@@ -27,7 +27,7 @@ namespace gpucheck {
       void getAnalysisUsage(AnalysisUsage &AU) const {
         AU.setPreservesAll();
         AU.addRequired<ThreadDependence>();
-        AU.addRequired<ThreadValueAnalysis>();
+        AU.addRequired<OffsetPropagation>();
         AU.addRequired<AddrSpaceAnalysis>();
       }
       bool runOnModule(Module &M);
@@ -43,7 +43,7 @@ namespace gpucheck {
     private:
       AddrSpaceAnalysis *ASA;
       ThreadDependence *TD;
-      ThreadValueAnalysis *TV;
+      OffsetPropagation *OP;
   };
 
 }

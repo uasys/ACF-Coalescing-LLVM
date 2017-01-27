@@ -162,6 +162,8 @@ namespace gpucheck {
   }
 
   bool equalOffsets(OffsetValPtr lhs, OffsetValPtr rhs, ThreadDependence& td) {
+    assert(lhs != nullptr);
+    assert(rhs != nullptr);
     if(lhs->isConst() && rhs->isConst())
       return lhs->constVal() == rhs->constVal();
 
@@ -197,9 +199,10 @@ namespace gpucheck {
     return false;
   }
 
-  void addToVector(OffsetValPtr ov, vector<OffsetValPtr>& add, vector<OffsetValPtr>&sub, bool isSub = false) {
+  void addToVector(const OffsetValPtr& ov, vector<OffsetValPtr>& add, vector<OffsetValPtr>&sub, bool isSub = false) {
+    assert(ov != nullptr);
     auto bo = dyn_cast<BinOpOffsetVal>(&*ov);
-    if(bo) {
+    if(bo != nullptr) {
       if(bo->op == Add) {
         addToVector(bo->lhs, add, sub, isSub);
         addToVector(bo->rhs, add, sub, isSub);
@@ -219,26 +222,38 @@ namespace gpucheck {
   }
 
   OffsetValPtr cancelDiffs(OffsetValPtr ov, ThreadDependence& td) {
+    assert(ov != nullptr);
     OffsetValPtr sop = sumOfProducts(ov);
     // Convert from binary tree to n-ary addition and subtraction
     vector<OffsetValPtr> added;
     vector<OffsetValPtr> subtracted;
+    added.clear();
+    subtracted.clear();
     addToVector(ov, added, subtracted);
 
     // Cancel any matching trees in the sums
-    for(auto o_a=added.begin(),e=added.end(); o_a!=e; ++o_a) {
-      for(auto o_s=subtracted.begin(),e=subtracted.end(); o_s!=e; ++o_s) {
-        if(equalOffsets(*o_a, *o_s, td)) {
-          added.erase(o_a--);
-          subtracted.erase(o_s);
-          break;
+    bool changed = true;
+    while(changed) {
+      changed = false;
+      for(auto o_a=added.begin(),e_a=added.end(); o_a!=e_a; ++o_a) {
+        for(auto o_s=subtracted.begin(),e_s=subtracted.end(); o_s!=e_s; ++o_s) {
+          assert(*o_s != nullptr);
+          if(equalOffsets(*o_a, *o_s, td)) {
+            added.erase(o_a);
+            subtracted.erase(o_s);
+            changed = true;
+            break;
+          }
         }
+        if(changed)
+          break;
       }
     }
 
     // Rebuild the binary tree
     OffsetValPtr ret = (added.size() == 0) ? make_shared<ConstOffsetVal>(0) : added.back();
-    added.pop_back();
+    if(added.size() > 0)
+      added.pop_back();
 
     while(added.size() > 0) {
       ret = make_shared<BinOpOffsetVal>(ret, Add, added.back());

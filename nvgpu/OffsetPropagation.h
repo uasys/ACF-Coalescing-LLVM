@@ -27,6 +27,7 @@ namespace gpucheck {
       OffsetValPtr getOrCreateVal(Constant *);
       OffsetValPtr getOrCreateVal(LoadInst *);
       OffsetValPtr getOrCreateVal(PHINode *);
+      OffsetValPtr getOrCreateVal(GetElementPtrInst *);
 
       OffsetOperator fromBinaryOpcode(llvm::Instruction::BinaryOps);
       OffsetOperator fromCmpPredicate(llvm::CmpInst::Predicate);
