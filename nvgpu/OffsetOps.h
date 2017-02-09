@@ -10,6 +10,7 @@
 
 namespace gpucheck {
   OffsetValPtr sumOfProducts(OffsetValPtr ov);
+  OffsetValPtr negateCondition(OffsetValPtr& cond);
   OffsetValPtr simplifyOffsetVal(OffsetValPtr ov);
   OffsetValPtr cancelDiffs(OffsetValPtr ov, ThreadDependence& td);
 

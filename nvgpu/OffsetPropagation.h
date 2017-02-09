@@ -4,6 +4,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Dominators.h"
+#include "llvm/IR/Constants.h"
 #include <unordered_map>
 #include <vector>
 
@@ -19,7 +20,6 @@ namespace gpucheck {
       Module *M;
       std::unordered_map<Value *, OffsetValPtr> offsets;
 
-
       OffsetValPtr getOrCreateVal(BinaryOperator *);
       OffsetValPtr getOrCreateVal(CallInst *);
       OffsetValPtr getOrCreateVal(CastInst *);
@@ -28,6 +28,8 @@ namespace gpucheck {
       OffsetValPtr getOrCreateVal(LoadInst *);
       OffsetValPtr getOrCreateVal(PHINode *);
       OffsetValPtr getOrCreateVal(GetElementPtrInst *);
+      OffsetValPtr getOrCreateGEPVal(ConstantExpr *);
+      OffsetValPtr getGEPExpr(Value *, Type *, Use *, Use *);
 
       OffsetOperator fromBinaryOpcode(llvm::Instruction::BinaryOps);
       OffsetOperator fromCmpPredicate(llvm::CmpInst::Predicate);
@@ -37,8 +39,6 @@ namespace gpucheck {
                                                 Instruction *mergePt,
                                                 DominatorTree& DT);
 
-      OffsetValPtr negateCondition(OffsetValPtr& cond);
-
       std::vector<const Function*> findRequiredContexts(const OffsetValPtr& ptr,
           std::vector<const Function*> found = std::vector<const Function*>());
       std::vector<const CallInst*> getSameModuleFunctionCallers(const Function *f);
@@ -46,6 +46,7 @@ namespace gpucheck {
       void invalidateRange(Value *start, OffsetValPtr& to);
 
       std::vector<OffsetValPtr> inContexts(OffsetValPtr& orig, std::vector<const Function*>& ignore);
+
     public:
       static char ID;
       OffsetPropagation() : ModulePass(ID) {}

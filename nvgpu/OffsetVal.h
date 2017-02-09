@@ -44,6 +44,10 @@ namespace gpucheck {
        */
       virtual const llvm::APInt& constVal() const;
       /**
+       * Returns a pair of values from lower to upper, inclusive
+       */
+      virtual const std::pair<llvm::APInt, llvm::APInt> constRange() const;
+      /**
        * Print a human-readable representation of this value
        */
       virtual void print(std::ostream& stream) const;
@@ -67,6 +71,7 @@ namespace gpucheck {
       ConstOffsetVal(int i) : OffsetVal(OV_Const), intVal(llvm::APInt(32, i, true)) { }
       bool isConst() const {return true;}
       const llvm::APInt& constVal() const;
+      const std::pair<llvm::APInt, llvm::APInt> constRange() const;
       void print(std::ostream& stream) const;
 
       static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Const; }
@@ -83,6 +88,7 @@ namespace gpucheck {
       }
       bool isConst() const {return false;}
       const llvm::APInt& constVal() const;
+      const std::pair<llvm::APInt, llvm::APInt> constRange() const;
       void print(std::ostream& stream) const;
 
       static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Inst; }
@@ -99,6 +105,7 @@ namespace gpucheck {
       }
       bool isConst() const {return false;}
       const llvm::APInt& constVal() const;
+      const std::pair<llvm::APInt, llvm::APInt> constRange() const;
       void print(std::ostream& stream) const;
 
       static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Arg; }
@@ -111,12 +118,13 @@ namespace gpucheck {
   class UnknownOffsetVal : public OffsetVal {
     private:
     public:
-      const llvm::Instruction* inst;
-      UnknownOffsetVal(llvm::Instruction* i) : OffsetVal(OV_Unk), inst(i) {
-        assert(i != nullptr);
+      const llvm::Value* cause;
+      UnknownOffsetVal(llvm::Value* v) : OffsetVal(OV_Unk), cause(v) {
+        assert(v != nullptr);
       }
       bool isConst() const {return false;}
       const llvm::APInt& constVal() const;
+      const std::pair<llvm::APInt, llvm::APInt> constRange() const;
       void print(std::ostream& stream) const;
 
       static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_Unk; }
@@ -161,9 +169,12 @@ namespace gpucheck {
         OffsetVal(OV_BinOp), lhs(lhs), rhs(rhs), op(op) {
           assert(lhs != nullptr);
           assert(rhs != nullptr);
+          assert(op != OffsetOperator::end);
         }
       bool isConst() const;
+      bool isCompare() const;
       const llvm::APInt& constVal() const;
+      const std::pair<llvm::APInt, llvm::APInt> constRange() const;
       void print(std::ostream& stream) const;
 
       static bool classof(const OffsetVal *ov) { return ov->getKind() == OV_BinOp; }

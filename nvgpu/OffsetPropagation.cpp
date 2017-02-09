@@ -5,6 +5,8 @@
 #include "llvm/Analysis/MemoryDependenceAnalysis.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/User.h"
 
 #define DEBUG_TYPE offset-prop
 
@@ -24,19 +26,6 @@ namespace gpucheck {
     // Empty any calculated results
     this->offsets.clear();
 
-    /*
-    for(auto f=M.begin(),e=M.end(); f!=e; ++f)
-      for(auto b=f->begin(),e=f->end(); b!=e; ++b)
-        for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-           errs() << *i << "\n";
-           cout << "    " << "raw = " << *getOrCreateVal(&*i) << "\n";
-           OffsetValPtr sop = sumOfProducts(getOrCreateVal(&*i));
-           cout << "    " << "sop = " << *sop << "\n";
-           OffsetValPtr simp = simplifyOffsetVal(sop);
-           cout << "    " << "sim = " << *simp << "\n";
-        }
-
-    */
     // OffsetVals are evaluated lazily as required
     return false;
   }
@@ -51,10 +40,15 @@ namespace gpucheck {
     if(auto c = dyn_cast<CallInst>(v)) return getOrCreateVal(c);
     if(auto c = dyn_cast<CastInst>(v)) return getOrCreateVal(c);
     if(auto c = dyn_cast<CmpInst>(v)) return getOrCreateVal(c);
-    if(auto c = dyn_cast<Constant>(v)) return getOrCreateVal(c);
     if(auto l = dyn_cast<LoadInst>(v)) return getOrCreateVal(l);
     if(auto p = dyn_cast<PHINode>(v)) return getOrCreateVal(p);
     if(auto g = dyn_cast<GetElementPtrInst>(v)) return getOrCreateVal(g);
+    if(auto ce = dyn_cast<ConstantExpr>(v)) {
+      if(ce->getOpcode() == Instruction::GetElementPtr) {
+        return getOrCreateGEPVal(ce);
+      }
+    }
+    if(auto c = dyn_cast<ConstantInt>(v)) return getOrCreateVal(c);
 
     // Fallthrough, unknown instruction
     if(auto i=dyn_cast<Instruction>(v)) {
@@ -63,8 +57,10 @@ namespace gpucheck {
     } else if(auto a=dyn_cast<Argument>(v)) {
       offsets[v] = make_shared<ArgOffsetVal>(a);
       return offsets[v];
+    } else {
+      offsets[v] = make_shared<UnknownOffsetVal>(v);
+      return offsets[v];
     }
-    return nullptr;
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(BinaryOperator *bo) {
@@ -83,16 +79,15 @@ namespace gpucheck {
     return offsets[bo];
   }
 
-  OffsetValPtr OffsetPropagation::getOrCreateVal(GetElementPtrInst *gep) {
-    // Find the DataLayout
-    const DataLayout& DL = gep->getModule()->getDataLayout();
+  OffsetValPtr OffsetPropagation::getGEPExpr(Value *ptr, Type *ptr_t, Use *idx_begin, Use *idx_end) {
 
+    const DataLayout& DL = M->getDataLayout();
     // We begin with the offset equal to the base
-    OffsetValPtr offset = getOrCreateVal(gep->getPointerOperand());
+    OffsetValPtr offset = getOrCreateVal(ptr);
 
     // Start calculating offsets
-    Type *t = gep->getPointerOperandType();
-    for(auto i=gep->idx_begin(),e=gep->idx_end(); i!=e; ++i) {
+    Type *t = ptr_t;
+    for(auto i=idx_begin,e=idx_end; i!=e; ++i) {
       OffsetValPtr idx_off;
 
       if(auto struct_t=dyn_cast<StructType>(t)) {
@@ -132,7 +127,25 @@ namespace gpucheck {
       offset = make_shared<BinOpOffsetVal>(offset, Add, idx_off);
     }
     return offset;
+
   }
+
+  OffsetValPtr OffsetPropagation::getOrCreateVal(GetElementPtrInst *gep) {
+    Value *ptr = gep->getPointerOperand();
+    Type *ptr_t = gep->getPointerOperandType();
+    Use *idx_begin = gep->idx_begin();
+    Use *idx_end = gep->idx_end();
+    return getGEPExpr(ptr, ptr_t, idx_begin, idx_end);
+  }
+
+  OffsetValPtr OffsetPropagation::getOrCreateGEPVal(ConstantExpr *gep) {
+    Value *ptr = gep->getOperand(0);
+    Type *ptr_t = ptr->getType();
+    Use *idx_begin = gep->op_begin()+1;
+    Use *idx_end = gep->op_end();
+    return getGEPExpr(ptr, ptr_t, idx_begin, idx_end);
+  }
+
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(CallInst *ci) {
     //TODO
@@ -149,17 +162,26 @@ namespace gpucheck {
     OffsetValPtr lhs = getOrCreateVal(ci->getOperand(0));
     OffsetValPtr rhs = getOrCreateVal(ci->getOperand(1));
     OffsetOperator op = fromCmpPredicate(ci->getPredicate());
-    offsets[ci] = make_shared<BinOpOffsetVal>(lhs, op, rhs);
+    if(op != OffsetOperator::end)
+      offsets[ci] = make_shared<BinOpOffsetVal>(lhs, op, rhs);
+    else
+      offsets[ci] = make_shared<InstOffsetVal>(ci);
     return offsets[ci];
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(Constant *c) {
-    offsets[c] = make_shared<ConstOffsetVal>(c);
+    //errs() << "Constant: " << *c << "\n";
+    //errs() << "Constant Type: " << *c->getType() << "\n";
+    if(c->getType()->isIntegerTy() || c->getType()->isPointerTy())
+      offsets[c] = make_shared<ConstOffsetVal>(c);
+    else
+      offsets[c] = make_shared<UnknownOffsetVal>(c);
     return offsets[c];
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(LoadInst *l) {
-    Function &f = *l->getFunction();
+    Function &f = *l->getParent()->getParent();
+
     MemoryDependenceResults& MD = getAnalysis<MemoryDependenceWrapperPass>(f).getMemDep();
     MemDepResult res = MD.getDependency(l);
 
@@ -169,20 +191,22 @@ namespace gpucheck {
         offsets[l]=getOrCreateVal(s->getValueOperand());
         return offsets[l];
       }
-    } else {
-      // Attempt manual discovery
-      for(auto b=f.begin(),e=f.end(); b!=e; ++b) {
-        for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-          if(auto s=dyn_cast<StoreInst>(i)) {
-            if(s->getPointerOperand() == l->getPointerOperand()) {
-              offsets[l] = getOrCreateVal(s->getValueOperand());
-              return offsets[l];
-            }
-          }
+    }
+    // Attempt manual discovery
+    Value *ptr = l->getPointerOperand();
+    const DominatorTree& DT = getAnalysis<DominatorTreeWrapperPass>(f).getDomTree();
+    for(auto u=ptr->user_begin(),e=ptr->user_end(); u!=e; ++u) {
+      //errs() << "Pointer used in: " << **u << "\n";
+      if(auto s=dyn_cast<StoreInst>(*u)) {
+        if(s->getPointerOperand() == ptr) {
+          // errs() << "Manual Load-Store Pair: \n" << *l << "\n" << *s << "\n";
+          offsets[l] = getOrCreateVal(s->getValueOperand());
+          return offsets[l];
         }
       }
     }
     // Default, unknown def
+    // errs() << "No pair found for load: "<< *l->getPointerOperand() << "\n" << l << " - " << *l << "\n";
     offsets[l] = make_shared<InstOffsetVal>(l);
     return offsets[l];
   }
@@ -417,27 +441,6 @@ namespace gpucheck {
       return make_shared<BinOpOffsetVal>(lhs, bo->op, rhs);
   }
 
-  OffsetValPtr OffsetPropagation::negateCondition(OffsetValPtr& cond) {
-    assert(isa<BinOpOffsetVal>(cond.get()));
-    auto b=dyn_cast<BinOpOffsetVal>(cond.get());
-    OffsetOperator flipped;
-    switch(b->op) {
-      case OffsetOperator::Eq: flipped = Neq; break;
-      case OffsetOperator::Neq: flipped = Eq; break;
-      case OffsetOperator::SLT: flipped = SGE; break;
-      case OffsetOperator::SGE: flipped = SLT; break;
-      case OffsetOperator::SLE: flipped = SGT; break;
-      case OffsetOperator::SGT: flipped = SLE; break;
-      case OffsetOperator::ULT: flipped = UGE; break;
-      case OffsetOperator::UGE: flipped = ULT; break;
-      case OffsetOperator::ULE: flipped = UGT; break;
-      case OffsetOperator::UGT: flipped = ULE; break;
-      default: flipped = end; break;
-    }
-    assert(flipped != OffsetOperator::end);
-    return make_shared<BinOpOffsetVal>(b->lhs, flipped, b->rhs);
-  }
-
   OffsetOperator OffsetPropagation::fromBinaryOpcode(llvm::Instruction::BinaryOps op) {
     switch(op) {
       case BinaryOperator::Add: return OffsetOperator::Add;
@@ -506,6 +509,7 @@ namespace gpucheck {
   }
 
   vector<OffsetValPtr> OffsetPropagation::inContexts(OffsetValPtr& orig, std::vector<const Function *>& ignore) {
+    assert(orig != nullptr);
     vector<const Function *> context = findRequiredContexts(orig);
     vector<OffsetValPtr> ret;
 

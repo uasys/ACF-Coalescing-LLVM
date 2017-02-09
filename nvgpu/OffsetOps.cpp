@@ -6,6 +6,27 @@ using namespace std;
 
 namespace gpucheck {
 
+  OffsetValPtr negateCondition(OffsetValPtr& cond) {
+    assert(isa<BinOpOffsetVal>(cond.get()));
+    auto b=dyn_cast<BinOpOffsetVal>(cond.get());
+    OffsetOperator flipped;
+    switch(b->op) {
+      case OffsetOperator::Eq: flipped = Neq; break;
+      case OffsetOperator::Neq: flipped = Eq; break;
+      case OffsetOperator::SLT: flipped = SGE; break;
+      case OffsetOperator::SGE: flipped = SLT; break;
+      case OffsetOperator::SLE: flipped = SGT; break;
+      case OffsetOperator::SGT: flipped = SLE; break;
+      case OffsetOperator::ULT: flipped = UGE; break;
+      case OffsetOperator::UGE: flipped = ULT; break;
+      case OffsetOperator::ULE: flipped = UGT; break;
+      case OffsetOperator::UGT: flipped = ULE; break;
+      default: flipped = end; break;
+    }
+    assert(flipped != OffsetOperator::end);
+    return make_shared<BinOpOffsetVal>(b->lhs, flipped, b->rhs);
+  }
+
   OffsetValPtr sumOfProducts(OffsetValPtr ov) {
     auto bo=dyn_cast<BinOpOffsetVal>(&*ov);
     if(bo == nullptr)
@@ -35,6 +56,18 @@ namespace gpucheck {
 
     // Just return the sum-of-productsed operands
     return make_shared<BinOpOffsetVal>(lhs, bo->op, rhs);
+  }
+
+  OffsetValPtr simplifyConditions(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs) {
+    // Convert (cond_1 - cond_2) to (cond_1*(!cond_2))
+    if(auto bo_lhs=dyn_cast<BinOpOffsetVal>(&*lhs)) {
+      if(auto bo_rhs=dyn_cast<BinOpOffsetVal>(&*lhs)) {
+        if(bo_lhs->isCompare() && bo_rhs->isCompare() && op == OffsetOperator::Sub) {
+          return make_shared<BinOpOffsetVal>(lhs, OffsetOperator::Mul, negateCondition(rhs));
+        }
+      }
+    }
+    return nullptr;
   }
 
   OffsetValPtr simplifyConstantVal(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs) {
@@ -99,6 +132,9 @@ namespace gpucheck {
       {
         if(rhs->isConst() && rhs->constVal() == 0)
           return lhs;
+        if(auto new_bo = simplifyConditions(lhs, bo->op, rhs))
+          return simplifyOffsetVal(new_bo);
+
       }
       case OffsetOperator::Mul:
       {
@@ -147,7 +183,7 @@ namespace gpucheck {
     auto u_lhs = dyn_cast<UnknownOffsetVal>(&*lhs);
     auto u_rhs = dyn_cast<UnknownOffsetVal>(&*rhs);
     if(u_lhs && u_rhs) {
-      return (u_lhs->inst == u_rhs->inst);
+      return (u_lhs->cause == u_rhs->cause);
     }
 
     auto bo_lhs = dyn_cast<BinOpOffsetVal>(&*lhs);
@@ -184,8 +220,8 @@ namespace gpucheck {
     auto u_lhs = dyn_cast<UnknownOffsetVal>(&*lhs);
     auto u_rhs = dyn_cast<UnknownOffsetVal>(&*rhs);
     if(u_lhs && u_rhs) {
-      if(u_lhs->inst == u_rhs->inst)
-        return !td.isDependent(const_cast<Instruction *>(u_lhs->inst));
+      if(u_lhs->cause == u_rhs->cause)
+        return !td.isDependent(const_cast<Value *>(u_lhs->cause));
     }
 
     auto bo_lhs = dyn_cast<BinOpOffsetVal>(&*lhs);

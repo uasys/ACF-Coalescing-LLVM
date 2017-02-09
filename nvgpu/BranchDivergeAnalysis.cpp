@@ -89,6 +89,8 @@ float BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
     if(!threadDiff->isConst()) {
       DEBUG(errs() << "Cannot generate constant for branch. Expression follows.\n");
       DEBUG(cerr << *threadDiff <<"\n");
+      auto rnge = threadDiff->constRange();
+      DEBUG(errs() << "Range: " << rnge.first << " to " << rnge.second << "\n");
       return 1.0; // Branch cannot be analyzed in at least 1 context
     }
 

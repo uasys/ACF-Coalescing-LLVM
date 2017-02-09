@@ -43,17 +43,14 @@ bool MemCoalesceAnalysis::runOnKernel(Function &F) {
 
   for(auto b=F.begin(),e=F.end(); b!=e; ++b) {
     for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
-      if(TD->isDependent(&*i)) {
+      if(auto L=dyn_cast<LoadInst>(i))
+        testLoad(L);
 
-        if(auto L=dyn_cast<LoadInst>(i))
-          testLoad(L);
+      if(auto S=dyn_cast<StoreInst>(i))
+        testStore(S);
 
-        if(auto S=dyn_cast<StoreInst>(i))
-          testStore(S);
-
-        if(auto CI=dyn_cast<CallInst>(i))
-          testCall(CI);
-      }
+      if(auto CI=dyn_cast<CallInst>(i))
+        testCall(CI);
     }
   }
   return false;
@@ -79,6 +76,11 @@ void MemCoalesceAnalysis::testStore(StoreInst *S) {
 
 bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
 
+  if(!TD->isDependent(ptr))
+    return false;
+  // Ignore stack allocations
+  if(isa<AllocaInst>(ptr))
+    return false;
   // Ignore shared/constant memory accesses
   if(!ASA->mayBeGlobal(i))
     return false;
@@ -188,6 +190,7 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requests
 float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
 
   OffsetValPtr ptr_offset = OP->getOrCreateVal(ptr);
+  assert(ptr_offset != nullptr);
   DEBUG(errs() << "Analyzing possibly uncoalesced access:\n    " << *ptr << "\n");
   vector<OffsetValPtr> all_paths = OP->inContexts(ptr_offset);
   DEBUG(errs() << "Context-sensitive analysis generated " << all_paths.size() << " contexts\n");
@@ -196,6 +199,7 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
   for(auto path=all_paths.begin(),e=all_paths.end(); path != e; ++path) {
     // Apply some (arbitrary) grid boundaries
     OffsetValPtr gridCtx = OP->inGridContext(*path, 256, 32, 32, 1, 1, 1);
+    DEBUG(cerr << "In grid context: " << *gridCtx <<"\n");
     // Perform as much simplification as we can early
     OffsetValPtr simp = simplifyOffsetVal(sumOfProducts(gridCtx));
 
@@ -208,6 +212,8 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
     if(!threadDiff->isConst()) {
       DEBUG(errs() << "Cannot generate constant for access. Expression follows.\n");
       DEBUG(cerr << *threadDiff <<"\n");
+      auto rnge = threadDiff->constRange();
+      DEBUG(errs() << "Range: " << rnge.first << " to " << rnge.second << "\n");
       return 32.0; // Branch cannot be analyzed in at least 1 context
     }
 
