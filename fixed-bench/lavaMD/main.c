@@ -44,8 +44,8 @@
 //	MAIN FUNCTION
 //========================================================================================================================================================================================================200
 
-int 
-main(	int argc, 
+int
+main(	int argc,
 		char *argv [])
 {
 
@@ -75,9 +75,9 @@ main(	int argc,
 	par_str par_cpu;
 	dim_str dim_cpu;
 	box_str* box_cpu;
-	FOUR_VECTOR* rv_cpu;
+	FOUR_ARR rv_cpu;
 	fp* qv_cpu;
-	FOUR_VECTOR* fv_cpu;
+	FOUR_ARR fv_cpu;
 	int nh;
 
 	time1 = get_time();
@@ -199,8 +199,8 @@ main(	int argc,
 								box_cpu[nh].nei[box_cpu[nh].nn].x = (k+n);
 								box_cpu[nh].nei[box_cpu[nh].nn].y = (j+m);
 								box_cpu[nh].nei[box_cpu[nh].nn].z = (i+l);
-								box_cpu[nh].nei[box_cpu[nh].nn].number =	(box_cpu[nh].nei[box_cpu[nh].nn].z * dim_cpu.boxes1d_arg * dim_cpu.boxes1d_arg) + 
-																			(box_cpu[nh].nei[box_cpu[nh].nn].y * dim_cpu.boxes1d_arg) + 
+								box_cpu[nh].nei[box_cpu[nh].nn].number =	(box_cpu[nh].nei[box_cpu[nh].nn].z * dim_cpu.boxes1d_arg * dim_cpu.boxes1d_arg) +
+																			(box_cpu[nh].nei[box_cpu[nh].nn].y * dim_cpu.boxes1d_arg) +
 																			 box_cpu[nh].nei[box_cpu[nh].nn].x;
 								box_cpu[nh].nei[box_cpu[nh].nn].offset = box_cpu[nh].nei[box_cpu[nh].nn].number * NUMBER_PAR_PER_BOX;
 
@@ -228,13 +228,19 @@ main(	int argc,
 	srand(time(NULL));
 
 	// input (distances)
-	rv_cpu = (FOUR_VECTOR*)malloc(dim_cpu.space_mem);
-	for(i=0; i<dim_cpu.space_elem; i=i+1){
-		rv_cpu[i].v = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		rv_cpu[i].x = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		rv_cpu[i].y = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		rv_cpu[i].z = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-	}
+	rv_cpu.v = (fp*)malloc(dim_cpu.space_mem/4);
+	rv_cpu.x = (fp*)malloc(dim_cpu.space_mem/4);
+	rv_cpu.y = (fp*)malloc(dim_cpu.space_mem/4);
+	rv_cpu.z = (fp*)malloc(dim_cpu.space_mem/4);
+
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		rv_cpu.v[i] = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		rv_cpu.x[i] = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		rv_cpu.y[i] = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		rv_cpu.z[i] = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
 
 	// input (charge)
 	qv_cpu = (fp*)malloc(dim_cpu.space_mem2);
@@ -243,13 +249,19 @@ main(	int argc,
 	}
 
 	// output (forces)
-	fv_cpu = (FOUR_VECTOR*)malloc(dim_cpu.space_mem);
-	for(i=0; i<dim_cpu.space_elem; i=i+1){
-		fv_cpu[i].v = 0;								// set to 0, because kernels keeps adding to initial value
-		fv_cpu[i].x = 0;								// set to 0, because kernels keeps adding to initial value
-		fv_cpu[i].y = 0;								// set to 0, because kernels keeps adding to initial value
-		fv_cpu[i].z = 0;								// set to 0, because kernels keeps adding to initial value
-	}
+	fv_cpu.v = (fp*)malloc(dim_cpu.space_mem/4);
+	fv_cpu.x = (fp*)malloc(dim_cpu.space_mem/4);
+	fv_cpu.y = (fp*)malloc(dim_cpu.space_mem/4);
+	fv_cpu.z = (fp*)malloc(dim_cpu.space_mem/4);
+
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		fv_cpu.v[i] = 0;								// set to 0, because kernels keeps adding to initial value
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		fv_cpu.x[i] = 0;								// set to 0, because kernels keeps adding to initial value
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		fv_cpu.y[i] = 0;								// set to 0, because kernels keeps adding to initial value
+	for(i=0; i<dim_cpu.space_elem; i=i+1)
+		fv_cpu.z[i] = 0;								// set to 0, because kernels keeps adding to initial value
 
 	time5 = get_time();
 
@@ -277,18 +289,24 @@ main(	int argc,
 	// dump results
 #ifdef OUTPUT
         FILE *fptr;
-	fptr = fopen("result.txt", "w");	
+	fptr = fopen("result.txt", "w");
 	for(i=0; i<dim_cpu.space_elem; i=i+1){
-        	fprintf(fptr, "%f, %f, %f, %f\n", fv_cpu[i].v, fv_cpu[i].x, fv_cpu[i].y, fv_cpu[i].z);
+        	fprintf(fptr, "%f, %f, %f, %f\n", fv_cpu.v[i], fv_cpu.x[i], fv_cpu.y[i], fv_cpu.z[i]);
 	}
 	fclose(fptr);
-#endif       	
+#endif
 
 
 
-	free(rv_cpu);
+	free(rv_cpu.v);
+	free(rv_cpu.x);
+	free(rv_cpu.y);
+	free(rv_cpu.z);
 	free(qv_cpu);
-	free(fv_cpu);
+	free(fv_cpu.v);
+	free(fv_cpu.x);
+	free(fv_cpu.y);
+	free(fv_cpu.z);
 	free(box_cpu);
 
 	time7 = get_time();

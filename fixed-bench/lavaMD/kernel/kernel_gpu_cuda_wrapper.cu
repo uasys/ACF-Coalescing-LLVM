@@ -31,13 +31,13 @@
 //	KERNEL_GPU_CUDA_WRAPPER FUNCTION
 //========================================================================================================================================================================================================200
 
-void 
+void
 kernel_gpu_cuda_wrapper(par_str par_cpu,
 						dim_str dim_cpu,
 						box_str* box_cpu,
-						FOUR_VECTOR* rv_cpu,
+						FOUR_ARR rv_cpu,
 						fp* qv_cpu,
-						FOUR_VECTOR* fv_cpu)
+						FOUR_ARR fv_cpu)
 {
 
 	//======================================================================================================================================================150
@@ -70,9 +70,9 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//====================================================================================================100
 
 	box_str* d_box_gpu;
-	FOUR_VECTOR* d_rv_gpu;
+	FOUR_ARR d_rv_gpu;
 	fp* d_qv_gpu;
-	FOUR_VECTOR* d_fv_gpu;
+	FOUR_ARR d_fv_gpu;
 
 	dim3 threads;
 	dim3 blocks;
@@ -100,21 +100,27 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//	boxes
 	//==================================================50
 
-	cudaMalloc(	(void **)&d_box_gpu, 
+	cudaMalloc(	(void **)&d_box_gpu,
 				dim_cpu.box_mem);
 
 	//==================================================50
 	//	rv
 	//==================================================50
 
-	cudaMalloc(	(void **)&d_rv_gpu, 
-				dim_cpu.space_mem);
+	cudaMalloc(	(void **)&d_rv_gpu.v,
+				dim_cpu.space_mem/4);
+	cudaMalloc(	(void **)&d_rv_gpu.x,
+				dim_cpu.space_mem/4);
+	cudaMalloc(	(void **)&d_rv_gpu.y,
+				dim_cpu.space_mem/4);
+	cudaMalloc(	(void **)&d_rv_gpu.z,
+				dim_cpu.space_mem/4);
 
 	//==================================================50
 	//	qv
 	//==================================================50
 
-	cudaMalloc(	(void **)&d_qv_gpu, 
+	cudaMalloc(	(void **)&d_qv_gpu,
 				dim_cpu.space_mem2);
 
 	//====================================================================================================100
@@ -125,8 +131,14 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//	fv
 	//==================================================50
 
-	cudaMalloc(	(void **)&d_fv_gpu, 
-				dim_cpu.space_mem);
+	cudaMalloc(	(void **)&d_fv_gpu.v,
+				dim_cpu.space_mem/4);
+	cudaMalloc(	(void **)&d_fv_gpu.x,
+				dim_cpu.space_mem/4);
+	cudaMalloc(	(void **)&d_fv_gpu.y,
+				dim_cpu.space_mem/4);
+	cudaMalloc(	(void **)&d_fv_gpu.z,
+				dim_cpu.space_mem/4);
 
 	time2 = get_time();
 
@@ -142,18 +154,30 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//	boxes
 	//==================================================50
 
-	cudaMemcpy(	d_box_gpu, 
+	cudaMemcpy(	d_box_gpu,
 				box_cpu,
-				dim_cpu.box_mem, 
+				dim_cpu.box_mem,
 				cudaMemcpyHostToDevice);
 
 	//==================================================50
 	//	rv
 	//==================================================50
 
-	cudaMemcpy(	d_rv_gpu,
-				rv_cpu,
-				dim_cpu.space_mem,
+	cudaMemcpy(	d_rv_gpu.v,
+				rv_cpu.v,
+				dim_cpu.space_mem/4,
+				cudaMemcpyHostToDevice);
+	cudaMemcpy(	d_rv_gpu.x,
+				rv_cpu.x,
+				dim_cpu.space_mem/4,
+				cudaMemcpyHostToDevice);
+	cudaMemcpy(	d_rv_gpu.y,
+				rv_cpu.y,
+				dim_cpu.space_mem/4,
+				cudaMemcpyHostToDevice);
+	cudaMemcpy(	d_rv_gpu.z,
+				rv_cpu.z,
+				dim_cpu.space_mem/4,
 				cudaMemcpyHostToDevice);
 
 	//==================================================50
@@ -173,9 +197,21 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//	fv
 	//==================================================50
 
-	cudaMemcpy(	d_fv_gpu, 
-				fv_cpu, 
-				dim_cpu.space_mem, 
+	cudaMemcpy(	d_fv_gpu.v,
+				fv_cpu.v,
+				dim_cpu.space_mem/4,
+				cudaMemcpyHostToDevice);
+	cudaMemcpy(	d_fv_gpu.x,
+				fv_cpu.x,
+				dim_cpu.space_mem/4,
+				cudaMemcpyHostToDevice);
+	cudaMemcpy(	d_fv_gpu.y,
+				fv_cpu.y,
+				dim_cpu.space_mem/4,
+				cudaMemcpyHostToDevice);
+	cudaMemcpy(	d_fv_gpu.z,
+				fv_cpu.z,
+				dim_cpu.space_mem/4,
 				cudaMemcpyHostToDevice);
 
 	time3 = get_time();
@@ -201,9 +237,21 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//	GPU MEMORY			COPY (CONTD.)
 	//======================================================================================================================================================150
 
-	cudaMemcpy(	fv_cpu, 
-				d_fv_gpu, 
-				dim_cpu.space_mem, 
+	cudaMemcpy(	fv_cpu.v,
+				d_fv_gpu.v,
+				dim_cpu.space_mem/4,
+				cudaMemcpyDeviceToHost);
+	cudaMemcpy(	fv_cpu.x,
+				d_fv_gpu.x,
+				dim_cpu.space_mem/4,
+				cudaMemcpyDeviceToHost);
+	cudaMemcpy(	fv_cpu.y,
+				d_fv_gpu.y,
+				dim_cpu.space_mem/4,
+				cudaMemcpyDeviceToHost);
+	cudaMemcpy(	fv_cpu.z,
+				d_fv_gpu.z,
+				dim_cpu.space_mem/4,
 				cudaMemcpyDeviceToHost);
 
 	time5 = get_time();
@@ -212,9 +260,15 @@ kernel_gpu_cuda_wrapper(par_str par_cpu,
 	//	GPU MEMORY DEALLOCATION
 	//======================================================================================================================================================150
 
-	cudaFree(d_rv_gpu);
+	cudaFree(d_rv_gpu.v);
+	cudaFree(d_rv_gpu.x);
+	cudaFree(d_rv_gpu.y);
+	cudaFree(d_rv_gpu.z);
 	cudaFree(d_qv_gpu);
-	cudaFree(d_fv_gpu);
+	cudaFree(d_fv_gpu.v);
+	cudaFree(d_fv_gpu.x);
+	cudaFree(d_fv_gpu.y);
+	cudaFree(d_fv_gpu.z);
 	cudaFree(d_box_gpu);
 
 	time6 = get_time();

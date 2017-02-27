@@ -2,12 +2,22 @@
 //	plasmaKernel_gpu_2
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------200
 
+#define ASGN_OFF(tgt, src, off) \
+{ \
+    tgt.v = &src.v[off]; \
+    tgt.x = &src.x[off]; \
+    tgt.y = &src.y[off]; \
+    tgt.z = &src.z[off]; \
+}
+
+#define DOT_ARR(A,ai,B,bi) ((A.x[ai])*(B.x[bi])+(A.y[ai])*(B.y[bi])+(A.z[ai])*(B.z[bi]))	// STABLE
+
 __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 								dim_str d_dim_gpu,
 								box_str* d_box_gpu,
-								FOUR_VECTOR* d_rv_gpu,
+								FOUR_ARR d_rv_gpu,
 								fp* d_qv_gpu,
-								FOUR_VECTOR* d_fv_gpu)
+								FOUR_ARR d_fv_gpu)
 {
 
 	//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------180
@@ -36,18 +46,37 @@ __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 
 		// home box
 		int first_i;
-		FOUR_VECTOR* rA;
-		FOUR_VECTOR* fA;
-		__shared__ FOUR_VECTOR rA_shared[100];
+		FOUR_ARR rA;
+		FOUR_ARR fA;
+        FOUR_ARR rA_shared;
+
+		__shared__ fp ra_shr_v[NUMBER_PAR_PER_BOX];
+		__shared__ fp ra_shr_x[NUMBER_PAR_PER_BOX];
+		__shared__ fp ra_shr_y[NUMBER_PAR_PER_BOX];
+		__shared__ fp ra_shr_z[NUMBER_PAR_PER_BOX];
+        rA_shared.v=ra_shr_v;
+        rA_shared.x=ra_shr_x;
+        rA_shared.y=ra_shr_y;
+        rA_shared.z=ra_shr_z;
 
 		// nei box
 		int pointer;
 		int k = 0;
 		int first_j;
-		FOUR_VECTOR* rB;
+		FOUR_ARR rB;
 		fp* qB;
 		int j = 0;
-		__shared__ FOUR_VECTOR rB_shared[100];
+
+		FOUR_ARR rB_shared;
+		__shared__ fp rb_shr_v[NUMBER_PAR_PER_BOX];
+		__shared__ fp rb_shr_x[NUMBER_PAR_PER_BOX];
+		__shared__ fp rb_shr_y[NUMBER_PAR_PER_BOX];
+		__shared__ fp rb_shr_z[NUMBER_PAR_PER_BOX];
+        rB_shared.v=rb_shr_v;
+        rB_shared.x=rb_shr_x;
+        rB_shared.y=rb_shr_y;
+        rB_shared.z=rb_shr_z;
+
 		__shared__ double qB_shared[100];
 
 		// common
@@ -72,8 +101,8 @@ __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 		first_i = d_box_gpu[bx].offset;
 
 		// home box - distance, force, charge and type parameters
-		rA = &d_rv_gpu[first_i];
-		fA = &d_fv_gpu[first_i];
+        ASGN_OFF(rA, d_rv_gpu, first_i);
+        ASGN_OFF(fA, d_fv_gpu, first_i);
 
 		//----------------------------------------------------------------------------------------------------------------------------------140
 		//	Copy to shared memory
@@ -81,7 +110,10 @@ __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 
 		// home box - shared memory
 		while(wtx<NUMBER_PAR_PER_BOX){
-			rA_shared[wtx] = rA[wtx];
+			rA_shared.v[wtx] = rA.v[wtx];
+			rA_shared.x[wtx] = rA.x[wtx];
+			rA_shared.y[wtx] = rA.y[wtx];
+			rA_shared.z[wtx] = rA.z[wtx];
 			wtx = wtx + NUMBER_THREADS;
 		}
 		wtx = tx;
@@ -115,7 +147,8 @@ __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 			first_j = d_box_gpu[pointer].offset;
 
 			// nei box - distance, (force), charge and (type) parameters
-			rB = &d_rv_gpu[first_j];
+            ASGN_OFF(rB, d_rv_gpu, first_j);
+
 			qB = &d_qv_gpu[first_j];
 
 			//----------------------------------------------------------------------------------------------------------------------------------140
@@ -124,7 +157,11 @@ __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 
 			// nei box - shared memory
 			while(wtx<NUMBER_PAR_PER_BOX){
-				rB_shared[wtx] = rB[wtx];
+				rB_shared.v[wtx] = rB.v[wtx];
+				rB_shared.x[wtx] = rB.x[wtx];
+				rB_shared.y[wtx] = rB.y[wtx];
+				rB_shared.z[wtx] = rB.z[wtx];
+
 				qB_shared[wtx] = qB[wtx];
 				wtx = wtx + NUMBER_THREADS;
 			}
@@ -163,22 +200,23 @@ __global__ void kernel_gpu_cuda(par_str d_par_gpu,
 
 
 
-					r2 = (fp)rA_shared[wtx].v + (fp)rB_shared[j].v - DOT((fp)rA_shared[wtx],(fp)rB_shared[j]);
+					r2 = (rA_shared.v[wtx]) + (rB_shared.v[j])
+                        - DOT_ARR(rA_shared,wtx,rB_shared,j);
 					u2 = a2*r2;
 					vij= exp(-u2);
 					fs = 2*vij;
 
-					d.x = (fp)rA_shared[wtx].x  - (fp)rB_shared[j].x;
+					d.x = (fp)rA_shared.x[wtx]  - (fp)rB_shared.x[j];
 					fxij=fs*d.x;
-					d.y = (fp)rA_shared[wtx].y  - (fp)rB_shared[j].y;
+					d.y = (fp)rA_shared.y[wtx]  - (fp)rB_shared.y[j];
 					fyij=fs*d.y;
-					d.z = (fp)rA_shared[wtx].z  - (fp)rB_shared[j].z;
+					d.z = (fp)rA_shared.z[wtx]  - (fp)rB_shared.z[j];
 					fzij=fs*d.z;
 
-					fA[wtx].v +=  (double)((fp)qB_shared[j]*vij);
-					fA[wtx].x +=  (double)((fp)qB_shared[j]*fxij);
-					fA[wtx].y +=  (double)((fp)qB_shared[j]*fyij);
-					fA[wtx].z +=  (double)((fp)qB_shared[j]*fzij);
+					fA.v[wtx] +=  (double)((fp)qB_shared[j]*vij);
+					fA.x[wtx] +=  (double)((fp)qB_shared[j]*fxij);
+					fA.y[wtx] +=  (double)((fp)qB_shared[j]*fyij);
+					fA.z[wtx] +=  (double)((fp)qB_shared[j]*fzij);
 
 				}
 

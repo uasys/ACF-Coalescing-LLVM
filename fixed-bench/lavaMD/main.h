@@ -16,7 +16,7 @@
 #elif defined(RD_WG_SIZE)
         #define NUMBER_THREADS RD_WG_SIZE
 #else
-        #define NUMBER_THREADS 128
+        #define NUMBER_THREADS 96
 #endif
 
 
@@ -34,9 +34,21 @@ typedef struct
 
 typedef struct
 {
+	fp *x, *y, *z;
+
+} THREE_ARR;
+
+typedef struct
+{
 	fp v, x, y, z;
 
 } FOUR_VECTOR;
+
+typedef struct
+{
+	fp *v, *x, *y, *z;
+
+} FOUR_ARR;
 
 typedef struct nei_str
 {
