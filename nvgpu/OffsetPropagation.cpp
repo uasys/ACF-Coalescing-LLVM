@@ -17,6 +17,7 @@ namespace gpucheck {
     AU.setPreservesAll();
     AU.addRequired<MemoryDependenceWrapperPass>();
     AU.addRequired<DominatorTreeWrapperPass>();
+    AU.addRequired<PostDominatorTreeWrapperPass>();
     AU.addRequired<LoopInfoWrapperPass>();
   }
 
@@ -168,6 +169,32 @@ namespace gpucheck {
       offsets[ci] = make_shared<InstOffsetVal>(ci);
     return offsets[ci];
   }
+  bool OffsetPropagation::isUpdateStore(StoreInst *s) {
+    vector<pair<int,Value*>> ops;
+    ops.push_back(make_pair(0,s));
+    while(ops.size()>0) {
+      int depth = ops.back().first + 1;
+      Value* v = ops.back().second;
+      ops.pop_back();
+
+      // We found a load from the same address
+      if(auto l=dyn_cast<LoadInst>(v)) {
+        if(l->getPointerOperand() == s->getPointerOperand())
+          return true;
+      }
+
+      // Keep traversing
+      if(auto u=dyn_cast<User>(v)) {
+        if(depth < 4) {
+          for(auto op=u->op_begin(),e=u->op_end(); op!=e; ++op) {
+            Value *opv = *op;
+            ops.push_back(make_pair(depth,opv));
+          }
+        }
+      }
+    }
+    return false;
+  }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(Constant *c) {
     //errs() << "Constant: " << *c << "\n";
@@ -195,10 +222,13 @@ namespace gpucheck {
     // Attempt manual discovery
     Value *ptr = l->getPointerOperand();
     const DominatorTree& DT = getAnalysis<DominatorTreeWrapperPass>(f).getDomTree();
+    const PostDominatorTree& PDT = getAnalysis<PostDominatorTreeWrapperPass>(f).getPostDomTree();
     for(auto u=ptr->user_begin(),e=ptr->user_end(); u!=e; ++u) {
       //errs() << "Pointer used in: " << **u << "\n";
       if(auto s=dyn_cast<StoreInst>(*u)) {
-        if(s->getPointerOperand() == ptr) {
+        if(s->getPointerOperand() == ptr
+                && !PDT.dominates(s->getParent(),l->getParent())
+                && !isUpdateStore(s)) {
           // errs() << "Manual Load-Store Pair: \n" << *l << "\n" << *s << "\n";
           offsets[l] = getOrCreateVal(s->getValueOperand());
           return offsets[l];
@@ -325,6 +355,13 @@ namespace gpucheck {
       }
     }
 
+    // Dirty, dirty hack
+    if(v_untaken.size() == 0 && v_taken.size() > 1) {
+        v_untaken.push_back(v_taken.back());
+        b_untaken.push_back(b_taken.back());
+        v_taken.pop_back();
+        b_taken.pop_back();
+    }
 
     assert(v_taken.size() > 0);
     assert(v_untaken.size() > 0);

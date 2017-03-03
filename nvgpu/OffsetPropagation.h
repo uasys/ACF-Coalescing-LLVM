@@ -4,6 +4,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Dominators.h"
+#include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/Constants.h"
 #include <unordered_map>
 #include <vector>
@@ -46,6 +47,8 @@ namespace gpucheck {
       void invalidateRange(Value *start, OffsetValPtr& to);
 
       std::vector<OffsetValPtr> inContexts(OffsetValPtr& orig, std::vector<const Function*>& ignore);
+
+      bool isUpdateStore(StoreInst* s);
 
     public:
       static char ID;
