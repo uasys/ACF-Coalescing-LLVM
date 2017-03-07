@@ -154,6 +154,16 @@ namespace gpucheck {
   }
   const std::pair<llvm::APInt, llvm::APInt> BinOpOffsetVal::constRange() const {
     auto lhs_rge = lhs->constRange(), rhs_rge = rhs->constRange();
+
+    // Collect same bitwidths
+    uint64_t bitwidth = std::max(
+            std::max(lhs_rge.first.getBitWidth(), lhs_rge.second.getBitWidth()),
+            std::max(rhs_rge.first.getBitWidth(), rhs_rge.second.getBitWidth()));
+    lhs_rge.first = lhs_rge.first.sextOrSelf(bitwidth);
+    lhs_rge.second = lhs_rge.second.sextOrSelf(bitwidth);
+    rhs_rge.first = rhs_rge.first.sextOrSelf(bitwidth);
+    rhs_rge.second = rhs_rge.second.sextOrSelf(bitwidth);
+
     APInt lower, upper;
     switch(op) {
       case OffsetOperator::Add:
