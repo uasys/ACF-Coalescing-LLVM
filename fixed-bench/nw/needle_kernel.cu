@@ -45,19 +45,15 @@ needle_cuda_shared_1(  int* referrence,
   __shared__  int temp[BLOCK_SIZE+1][BLOCK_SIZE+1];
   __shared__  int ref[BLOCK_SIZE][BLOCK_SIZE];
 
-   if (tx < 32)
-		  temp[0][0] = matrix_cuda[index_nw];
-
 
   for ( int ty = 0 ; ty < BLOCK_SIZE ; ty++)
   ref[ty][tx] = referrence[index + cols * ty];
 
   __syncthreads();
 
+   if (tx < 32)
+		  temp[0][0] = matrix_cuda[index_nw];
   temp[tx + 1][0] = matrix_cuda[index_w + cols * tx];
-
-  __syncthreads();
-
   temp[0][tx + 1] = matrix_cuda[index_n];
 
   __syncthreads();
@@ -131,16 +127,9 @@ needle_cuda_shared_2(  int* referrence,
   for ( int ty = 0 ; ty < BLOCK_SIZE ; ty++)
   ref[ty][tx] = referrence[index + cols * ty];
 
-  __syncthreads();
-
    if (tx < 32)
       temp[0][0] = matrix_cuda[index_nw];
-
-
   temp[tx + 1][0] = matrix_cuda[index_w + cols * tx];
-
-  //__syncthreads();
-
   temp[0][tx + 1] = matrix_cuda[index_n];
 
   __syncthreads();
