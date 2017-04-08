@@ -40,11 +40,19 @@ bool AddrSpaceAnalysis::runOnModule(Module &M) {
 }
 
 bool AddrSpaceAnalysis::mayBeGlobal(Value *v) {
+  // Attempt to dig down to the base
   if(auto L=dyn_cast<LoadInst>(v)) {
     return mayBeGlobal(L->getPointerOperand());
   }
   if(auto S=dyn_cast<StoreInst>(v)) {
     return mayBeGlobal(S->getPointerOperand());
+  }
+  if(auto OP=dyn_cast<Operator>(v)) {
+    if(OP->getOpcode() == Instruction::AddrSpaceCast)
+      return mayBeGlobal(OP->getOperand(0));
+  }
+  if(auto GEP=dyn_cast<GetElementPtrInst>(v)) {
+    return mayBeGlobal(GEP->getPointerOperand());
   }
 
   // Address space encoded on the type
@@ -56,14 +64,6 @@ bool AddrSpaceAnalysis::mayBeGlobal(Value *v) {
     if(addr == AddrSpace::Shared) {
       return false;
     }
-  }
-
-  if(auto OP=dyn_cast<Operator>(v)) {
-    if(OP->getOpcode() == Instruction::AddrSpaceCast)
-      return mayBeGlobal(OP->getOperand(0));
-  }
-  if(auto GEP=dyn_cast<GetElementPtrInst>(v)) {
-    return mayBeGlobal(GEP->getPointerOperand());
   }
 
   // If we can't tell, assume it may
