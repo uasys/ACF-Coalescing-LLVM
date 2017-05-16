@@ -1,0 +1,25 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -I/usr/local/cuda/include -O3 streamcluster_cuda_cpu.cpp streamcluster_cuda.cu streamcluster_header.cu -o sc_gpu -lcuda
+streamcluster_cuda_cpu.cpp:745:27: warning: format specifies type 'unsigned int' but the argument has type 'long' [-Wformat]
+      fprintf(fp, "%u\n", centerIDs[i]);
+                   ~~     ^~~~~~~~~~~~
+                   %ld
+streamcluster_cuda_cpu.cpp:793:39: warning: format specifies type 'int' but the argument has type 'size_t' (aka 'unsigned long') [-Wformat]
+    fprintf(stderr,"read %d points\n",numRead);
+                         ~~           ^~~~~~~
+                         %lu
+streamcluster_cuda_cpu.cpp:795:63: warning: '&&' within '||' [-Wlogical-op-parentheses]
+    if( stream->ferror() || numRead < (unsigned int)chunksize && !stream->feof() ) {
+                         ~~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+streamcluster_cuda_cpu.cpp:795:63: note: place parentheses around the '&&' expression to silence this warning
+    if( stream->ferror() || numRead < (unsigned int)chunksize && !stream->feof() ) {
+                                                              ^
+                            (                                                   )
+3 warnings generated.
+Memory Coalescing Issues:
+streamcluster_cuda.cu:81
+streamcluster_cuda.cu:86
+streamcluster_cuda.cu:86
+Divergence Issues:
+streamcluster_cuda.cu:70
+streamcluster_cuda.cu:78
+GPU-Check ran successfully

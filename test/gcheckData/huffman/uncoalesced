@@ -1,0 +1,81 @@
+        ^~~
+               ^~~
+                 ~~ ~~^~~~
+                      ^
+                         ~~ ~~^~~~
+                              ^
+                               ^
+                                 ^
+                                 ^~~
+                                     ^
+                                      ^
+                                       ^~~
+                                          ^
+                                               ^
+                                                 ~~ ~~^~~~
+                                                      ^
+                                                    (     )
+                            (     )
+                    (     )
+ 2);
+ (2.f * blockSize)));
+3 warnings generated.
+5 errors generated.
+                atomicOr(&dstData[dword+i+1], dw << 32-bit);
+clang-4.0: error: no such file or directory: 'main_test_cu.o'
+clang-4.0: error: no such file or directory: 'pack_kernels.o'
+clang-4.0: error: no such file or directory: 'scan.o'
+clang-4.0: error: no such file or directory: 'vlc_kernel_sm64huff.o'
+clang-4.0: warning: cpuencode.o: 'linker' input unused
+clang-4.0: warning: stats_logger.o: 'linker' input unused
+device_functions.hpp:495:38: note: candidate function not viable: call to __device__ function from __host__ function
+__DEVICE_FUNCTIONS_STATIC_DECL__ int max(int x, int y)
+    dim3  grid(max(1, numBlocks - np2LastBlock), 1, 1); 
+g++    -c -o cpuencode.o cpuencode.cpp
+gpu-check -c pack_kernels.cu -O3 -arch=sm_35 -Xcompiler -m64 -g -G
+gpu-check -c scan.cu -O3 -arch=sm_35 -Xcompiler -m64 -g -G
+gpu-check   -O3 -arch=sm_35 -Xcompiler -m64 -g -G main_test_cu.o stats_logger.o vlc_kernel_sm64huff.o scan.o pack_kernels.o cpuencode.o -o pavle
+__MATH_FUNCTIONS_DECL__ double max(double a, double b)
+__MATH_FUNCTIONS_DECL__ double max(double a, float b)
+__MATH_FUNCTIONS_DECL__ double max(float a, double b)
+__MATH_FUNCTIONS_DECL__ float max(float a, float b)
+__MATH_FUNCTIONS_DECL__ long int max(long int a, long int b)
+__MATH_FUNCTIONS_DECL__ long long int max(long long int a, long long int b)
+__MATH_FUNCTIONS_DECL__ unsigned int max(int a, unsigned int b)
+__MATH_FUNCTIONS_DECL__ unsigned int max(unsigned int a, int b)
+__MATH_FUNCTIONS_DECL__ unsigned int max(unsigned int a, unsigned int b)
+__MATH_FUNCTIONS_DECL__ unsigned long int max(long int a, unsigned long int b)
+__MATH_FUNCTIONS_DECL__ unsigned long int max(unsigned long int a, long int b)
+__MATH_FUNCTIONS_DECL__ unsigned long int max(unsigned long int a, unsigned long int b)
+__MATH_FUNCTIONS_DECL__ unsigned long long int max(long long int a, unsigned long long int b)
+__MATH_FUNCTIONS_DECL__ unsigned long long int max(unsigned long long int a, long long int b)
+__MATH_FUNCTIONS_DECL__ unsigned long long int max(unsigned long long int a, unsigned long long int b)
+math_functions.hpp:1004:31: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:1009:32: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:1014:32: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:1019:32: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:908:38: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:913:38: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:918:38: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:923:34: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:939:43: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:954:43: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:969:43: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:984:39: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:989:48: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:994:48: note: candidate function not viable: call to __device__ function from __host__ function
+math_functions.hpp:999:48: note: candidate function not viable: call to __device__ function from __host__ function
+pack_kernels.cu:35:16: note: place parentheses around the '-' expression to silence this warning
+pack_kernels.cu:35:16: warning: operator '<<' has lower precedence than '-'; '-' will be evaluated first [-Wshift-op-parentheses]
+pack_kernels.cu:40:17: note: place parentheses around the '-' expression to silence this warning
+pack_kernels.cu:40:17: warning: operator '<<' has lower precedence than '-'; '-' will be evaluated first [-Wshift-op-parentheses]
+pack_kernels.cu:50:41: note: place parentheses around the '-' expression to silence this warning
+pack_kernels.cu:50:41: warning: operator '<<' has lower precedence than '-'; '-' will be evaluated first [-Wshift-op-parentheses]
+ save the remaining bits in tmp (like before)
+ save the remaining bits that were cut off earlier in tmp
+scan.cu:121:9: error: no matching function for call to 'max'
+scan.cu:137:40: error: no matching function for call to 'max'
+scan.cu:167:16: error: no matching function for call to 'max'
+scan.cu:78:34: error: no matching function for call to 'max'
+scan.cu:89:34: error: no matching function for call to 'max'
+Segmentation fault (core dumped)

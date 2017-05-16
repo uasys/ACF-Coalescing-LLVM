@@ -1,0 +1,12 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  needle.cu -o needle -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+Memory Coalescing Issues:
+./needle_kernel.cu:57
+./needle_kernel.cu:140
+Divergence Issues:
+./needle_kernel.cu:48
+./needle_kernel.cu:68
+./needle_kernel.cu:87
+./needle_kernel.cu:136
+./needle_kernel.cu:151
+./needle_kernel.cu:169
+GPU-Check ran successfully

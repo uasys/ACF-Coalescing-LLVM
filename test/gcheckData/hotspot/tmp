@@ -1,0 +1,43 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  hotspot.cu -o hotspot -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+hotspot.cu:89:10: warning: conversion from string literal to 'char *' is deprecated [-Wc++11-compat-deprecated-writable-strings]
+                        fatal("not enough lines in file");
+                              ^
+hotspot.cu:92:10: warning: conversion from string literal to 'char *' is deprecated [-Wc++11-compat-deprecated-writable-strings]
+                        fatal("invalid file format");
+                              ^
+hotspot.cu:312:15: warning: conversion from string literal to 'char *' is deprecated [-Wc++11-compat-deprecated-writable-strings]
+        fatal("unable to allocate memory");
+              ^
+3 warnings generated.
+hotspot.cu:89:10: warning: conversion from string literal to 'char *' is deprecated [-Wc++11-compat-deprecated-writable-strings]
+                        fatal("not enough lines in file");
+                              ^
+hotspot.cu:92:10: warning: conversion from string literal to 'char *' is deprecated [-Wc++11-compat-deprecated-writable-strings]
+                        fatal("invalid file format");
+                              ^
+hotspot.cu:312:15: warning: conversion from string literal to 'char *' is deprecated [-Wc++11-compat-deprecated-writable-strings]
+        fatal("unable to allocate memory");
+              ^
+3 warnings generated.
+Memory Coalescing Issues:
+hotspot.cu:164
+hotspot.cu:165
+hotspot.cu:213
+Divergence Issues:
+hotspot.cu:163
+hotspot.cu:163
+hotspot.cu:163
+hotspot.cu:163
+hotspot.cu:182
+hotspot.cu:183
+hotspot.cu:184
+hotspot.cu:185
+hotspot.cu:190
+hotspot.cu:190
+hotspot.cu:191
+hotspot.cu:191
+hotspot.cu:192
+hotspot.cu:192
+hotspot.cu:193
+hotspot.cu:190
+GPU-Check ran successfully

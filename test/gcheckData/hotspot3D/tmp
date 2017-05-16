@@ -1,0 +1,3 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  -g -G  3D.cu -o 3D -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+Memory Coalescing Issues:
+Terminated

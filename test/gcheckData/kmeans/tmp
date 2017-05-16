@@ -1,0 +1,26 @@
+gcc -g -fopenmp -O2 cluster.c -c
+cluster.c: In function ‘cluster’:
+cluster.c:111:3: warning: implicit declaration of function ‘allocateMemory’ [-Wimplicit-function-declaration]
+   allocateMemory(npoints, nfeatures, nclusters, features);
+   ^
+cluster.c:149:3: warning: implicit declaration of function ‘deallocateMemory’ [-Wimplicit-function-declaration]
+   deallocateMemory();       /* free device memory (@ kmeans_cuda.cu) */
+   ^
+gcc -g -fopenmp -O2 getopt.c -c
+gcc -g -fopenmp -O2 kmeans.h -c
+gcc -g -fopenmp -O2 kmeans_clustering.c -c
+kmeans_clustering.c: In function ‘kmeans_clustering’:
+kmeans_clustering.c:149:19: warning: implicit declaration of function ‘kmeansCuda’ [-Wimplicit-function-declaration]
+   delta = (float) kmeansCuda(feature,   /* in: [npoints][nfeatures] */
+                   ^
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -I/usr/local/cuda/include -O2 -c kmeans_cuda.cu
+kmeans_cuda.cu:7:10: fatal error: 'omp.h' file not found
+#include <omp.h>
+         ^
+1 error generated.
+gcc -g -fopenmp -O2 rmse.c -c
+gcc -g -fopenmp -O2 cluster.o getopt.o kmeans.o kmeans_clustering.o kmeans_cuda.o rmse.o -o kmeans -L/usr/local/cuda/lib64 -lcuda -lcudart -lm
+gcc: error: kmeans.o: No such file or directory
+gcc: error: kmeans_cuda.o: No such file or directory
+Makefile:25: recipe for target 'kmeans' failed
+make: *** [kmeans] Error 1

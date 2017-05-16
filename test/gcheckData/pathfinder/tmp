@@ -1,0 +1,14 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check pathfinder.cu -o pathfinder -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+Memory Coalescing Issues:
+Divergence Issues:
+pathfinder.cu:145
+pathfinder.cu:146
+pathfinder.cu:148
+pathfinder.cu:150
+pathfinder.cu:150
+pathfinder.cu:157
+pathfinder.cu:157
+pathfinder.cu:157
+pathfinder.cu:163
+pathfinder.cu:164
+GPU-Check ran successfully

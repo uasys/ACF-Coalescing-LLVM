@@ -61,7 +61,7 @@ namespace gpucheck {
   OffsetValPtr simplifyConditions(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs) {
     // Convert (cond_1 - cond_2) to (cond_1*(!cond_2))
     if(auto bo_lhs=dyn_cast<BinOpOffsetVal>(&*lhs)) {
-      if(auto bo_rhs=dyn_cast<BinOpOffsetVal>(&*lhs)) {
+      if(auto bo_rhs=dyn_cast<BinOpOffsetVal>(&*rhs)) {
         if(bo_lhs->isCompare() && bo_rhs->isCompare() && op == OffsetOperator::Sub) {
           return make_shared<BinOpOffsetVal>(lhs, OffsetOperator::Mul, negateCondition(rhs));
         }

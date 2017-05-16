@@ -1,0 +1,13 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  gaussian.cu -o gaussian -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+Memory Coalescing Issues:
+gaussian.cu:295
+gaussian.cu:295
+gaussian.cu:312
+gaussian.cu:312
+gaussian.cu:317
+Divergence Issues:
+gaussian.cu:294
+gaussian.cu:305
+gaussian.cu:306
+gaussian.cu:314
+GPU-Check ran successfully

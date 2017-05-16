@@ -1,0 +1,6 @@
+nvcc  -O2 -Xptxas -v --gpu-architecture=compute_20 --gpu-code=compute_20 euler3d.cu -o euler3d -I/usr/local/cuda-5.5/samples//common/inc  -L/usr/local/cuda-5.5/samples//lib 
+nvcc warning : The 'compute_20', 'sm_20', and 'sm_21' architectures are deprecated, and may be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+euler3d.cu:5:25: fatal error: helper_cuda.h: No such file or directory
+compilation terminated.
+Makefile:17: recipe for target 'euler3d' failed
+make: *** [euler3d] Error 1

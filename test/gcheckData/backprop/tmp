@@ -1,0 +1,65 @@
+gcc -g  -O2 backprop.c -c
+backprop.c:92:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ bpnn_randomize_weights(w, m, n)
+ ^
+backprop.c:106:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ bpnn_randomize_row(w, m)
+ ^
+backprop.c:118:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ bpnn_zero_weights(w, m, n)
+ ^
+backprop.c: In function ‘bpnn_initialize’:
+backprop.c:132:6: warning: type of ‘seed’ defaults to ‘int’ [-Wimplicit-int]
+ void bpnn_initialize(seed)
+      ^
+backprop.c: In function ‘bpnn_adjust_weights’:
+backprop.c:305:6: warning: type of ‘ndelta’ defaults to ‘int’ [-Wimplicit-int]
+ void bpnn_adjust_weights(delta, ndelta, ly, nly, w, oldw)
+      ^
+backprop.c:305:6: warning: type of ‘nly’ defaults to ‘int’ [-Wimplicit-int]
+backprop.c: In function ‘bpnn_read’:
+backprop.c:457:13: warning: implicit declaration of function ‘open’ [-Wimplicit-function-declaration]
+   if ((fd = open(filename, 0, 0644)) == -1) {
+             ^
+backprop.c:463:3: warning: implicit declaration of function ‘read’ [-Wimplicit-function-declaration]
+   read(fd, (char *) &n1, sizeof(int));
+   ^
+backprop.c:494:3: warning: implicit declaration of function ‘close’ [-Wimplicit-function-declaration]
+   close(fd);
+   ^
+gcc -g  -O2 facetrain.c -c
+facetrain.c:14:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ backprop_face()
+ ^
+facetrain.c: In function ‘backprop_face’:
+facetrain.c:22:3: warning: implicit declaration of function ‘load’ [-Wimplicit-function-declaration]
+   load(net);
+   ^
+facetrain.c:25:3: warning: implicit declaration of function ‘bpnn_train_cuda’ [-Wimplicit-function-declaration]
+   bpnn_train_cuda(net, &out_err, &hid_err);
+   ^
+gcc -g  -O2 imagenet.c -c
+imagenet.c:6:8: warning: type defaults to ‘int’ in declaration of ‘layer_size’ [-Wimplicit-int]
+ extern layer_size;
+        ^
+imagenet.c:8:1: warning: return type defaults to ‘int’ [-Wimplicit-int]
+ load(net)
+ ^
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -I/usr/local/cuda/include -O2 -c backprop_cuda.cu
+Memory Coalescing Issues:
+./backprop_cuda_kernel.cu:37
+./backprop_cuda_kernel.cu:58
+./backprop_cuda_kernel.cu:101
+./backprop_cuda_kernel.cu:101
+./backprop_cuda_kernel.cu:102
+./backprop_cuda_kernel.cu:102
+Divergence Issues:
+./backprop_cuda_kernel.cu:32
+./backprop_cuda_kernel.cu:49
+./backprop_cuda_kernel.cu:74
+./backprop_cuda_kernel.cu:107
+GPU-Check ran successfully
+gcc -g  -O2 backprop.o facetrain.o imagenet.o backprop_cuda.o -o backprop -L/usr/local/cuda/lib64 -lcuda -lcudart -lm
+gcc: error: backprop_cuda.o: No such file or directory
+Makefile:25: recipe for target 'backprop' failed
+make: *** [backprop] Error 1

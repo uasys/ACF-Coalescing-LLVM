@@ -1,0 +1,11 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -cuda nn_cuda.cu
+Memory Coalescing Issues:
+Divergence Issues:
+nn_cuda.cu:54
+GPU-Check ran successfully
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -o nn nn_cuda.cu
+Memory Coalescing Issues:
+Divergence Issues:
+nn_cuda.cu:54
+GPU-Check ran successfully
+gcc -g -O3 -Wall -o hurricane_gen hurricane_gen.c -lm

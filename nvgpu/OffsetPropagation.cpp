@@ -265,6 +265,10 @@ namespace gpucheck {
       }
     }
 
+    if(fwd_values.size() == 0) {
+      offsets[p] = make_shared<InstOffsetVal>(p);
+      return offsets[p];
+    }
 
     // Calculate ourselves from non-loops
     offsets[p] = applyDominatingCondition(fwd_values, fwd_blocks, p, DT);

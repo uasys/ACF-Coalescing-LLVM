@@ -1,0 +1,102 @@
+gcc	  main.c \
+		-c \
+		-o main.o \
+		-O3
+main.c: In function ‘main’:
+main.c:95:6: warning: implicit declaration of function ‘strcmp’ [-Wimplicit-function-declaration]
+   if(strcmp(argv[dim_cpu.cur_arg], "-boxes1d")==0){
+      ^
+main.c:228:8: warning: implicit declaration of function ‘time’ [-Wimplicit-function-declaration]
+  srand(time(NULL));
+        ^
+/home/taylor/git/coalescingsa-llvm/test/gpu-check 						./kernel/kernel_gpu_cuda_wrapper.cu \
+								-c \
+								-o ./kernel/kernel_gpu_cuda_wrapper.o \
+								-O3 \
+								-arch sm_13
+./kernel/kernel_gpu_cuda_wrapper.cu:228:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: SET DEVICE / DRIVER INIT\n",        (float) (time1-time0) / 1000000, (float) (time1-time0) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:229:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: ALO\n",                                         (float) (time2-time1) / 1000000, (float) (time2-time1) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:230:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY IN\n",                                     (float) (time3-time2) / 1000000, (float) (time3-time2) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:232:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: KERNEL\n",                                          (float) (time4-time3) / 1000000, (float) (time4-time3) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:234:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY OUT\n",                            (float) (time5-time4) / 1000000, (float) (time5-time4) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:235:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: FRE\n",                                         (float) (time6-time5) / 1000000, (float) (time6-time5) / (float) (time6-time0) * 100);
+                                   ~~^
+6 warnings generated.
+./kernel/kernel_gpu_cuda_wrapper.cu:228:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: SET DEVICE / DRIVER INIT\n",        (float) (time1-time0) / 1000000, (float) (time1-time0) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:229:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: ALO\n",                                         (float) (time2-time1) / 1000000, (float) (time2-time1) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:230:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY IN\n",                                     (float) (time3-time2) / 1000000, (float) (time3-time2) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:232:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: KERNEL\n",                                          (float) (time4-time3) / 1000000, (float) (time4-time3) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:234:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY OUT\n",                            (float) (time5-time4) / 1000000, (float) (time5-time4) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:235:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: FRE\n",                                         (float) (time6-time5) / 1000000, (float) (time6-time5) / (float) (time6-time0) * 100);
+                                   ~~^
+6 warnings generated.
+Memory Coalescing Issues:
+Divergence Issues:
+./kernel/./kernel_gpu_cuda.cu:83
+./kernel/./kernel_gpu_cuda.cu:126
+./kernel/./kernel_gpu_cuda.cu:142
+/usr/local/cuda/include/math_functions_dbl_ptx3.hpp:249
+/usr/local/cuda/include/math_functions_dbl_ptx3.hpp:249
+/usr/local/cuda/include/math_functions_dbl_ptx3.hpp:249
+GPU-Check ran successfully
+gcc			./util/num/num.c \
+				-c \
+				-o ./util/num/num.o \
+				-O3
+gcc				./util/timer/timer.c \
+					-c \
+					-o ./util/timer/timer.o \
+					-O3
+./util/timer/timer.c: In function ‘get_time’:
+./util/timer/timer.c:26:2: warning: implicit declaration of function ‘gettimeofday’ [-Wimplicit-function-declaration]
+  gettimeofday(&tv, NULL);
+  ^
+/home/taylor/git/coalescingsa-llvm/test/gpu-check			./util/device/device.cu \
+					-c \
+					-o ./util/device/device.o \
+					-O3
+Memory Coalescing Issues:
+Divergence Issues:
+./kernel/./kernel_gpu_cuda.cu:83
+./kernel/./kernel_gpu_cuda.cu:126
+./kernel/./kernel_gpu_cuda.cu:142
+/usr/local/cuda/include/math_functions_dbl_ptx3.hpp:249
+/usr/local/cuda/include/math_functions_dbl_ptx3.hpp:249
+/usr/local/cuda/include/math_functions_dbl_ptx3.hpp:249
+GPU-Check ran successfully
+gcc	 main.o \
+		./kernel/kernel_gpu_cuda_wrapper.o \
+		./util/num/num.o \
+		./util/timer/timer.o \
+		./util/device/device.o \
+		-lm \
+		-L/usr/local/cuda/lib64 \
+		-lcuda -lcudart \
+		-lgomp \
+		-o lavaMD
+gcc: error: ./kernel/kernel_gpu_cuda_wrapper.o: No such file or directory
+gcc: error: ./util/device/device.o: No such file or directory
+makefile:29: recipe for target 'a.out' failed
+make: *** [a.out] Error 1

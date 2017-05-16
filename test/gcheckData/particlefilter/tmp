@@ -1,0 +1,8 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -I/usr/local/cuda/include -L/usr/local/cuda/lib64 -lcuda -g -lm -O3 -use_fast_math -arch sm_13 ex_particle_CUDA_naive_seq.cu -o particlefilter_naive
+usage: gpu-check [-h] [-I INCLUDES [INCLUDES ...]] [-O OPT] [-l LIBS]
+                 [-L LIBDIR] [-g] [-G] [-o OUTPUT] [-arch ARCH] [-cuda]
+                 [-use-fast-math] [-c] [-v]
+                 File [File ...]
+gpu-check: error: unrecognized arguments: -use_fast_math
+Makefile:12: recipe for target 'naive' failed
+make: *** [naive] Error 2

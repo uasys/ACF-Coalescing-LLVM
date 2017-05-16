@@ -1,0 +1,12 @@
+cd cuda; make
+make[1]: Entering directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/lud/cuda'
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  -I../common -O3 -use_fast_math -arch=sm_13 -lm  -DGPU_TIMER  -o ../common/common.o -c ../common/common.c
+Traceback (most recent call last):
+  File "/home/taylor/git/coalescingsa-llvm/test/gpu-check", line 43, in <module>
+    compile += -I
+NameError: name 'I' is not defined
+Makefile:34: recipe for target '../common/common.o' failed
+make[1]: *** [../common/common.o] Error 1
+make[1]: Leaving directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/lud/cuda'
+Makefile:4: recipe for target 'lud_cuda' failed
+make: *** [lud_cuda] Error 2

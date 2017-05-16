@@ -1,0 +1,13 @@
+/home/taylor/git/coalescingsa-llvm/test/gpu-check bfs.cu -o bfs -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+Memory Coalescing Issues:
+./kernel.cu:31
+./kernel.cu:33
+./kernel.cu:34
+Divergence Issues:
+./kernel.cu:25
+./kernel.cu:25
+./kernel.cu:28
+./kernel.cu:31
+./kernel2.cu:25
+./kernel2.cu:25
+GPU-Check ran successfully

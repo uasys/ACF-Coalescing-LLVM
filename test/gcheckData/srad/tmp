@@ -1,0 +1,44 @@
+cd srad_v2; 	make
+make[1]: Entering directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/srad/srad_v2'
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  srad.cu -o srad -I/usr/local/cuda/include -L/usr/local/cuda/lib64
+Memory Coalescing Issues:
+./srad_kernel.cu:55
+./srad_kernel.cu:56
+./srad_kernel.cu:59
+./srad_kernel.cu:62
+./srad_kernel.cu:69
+./srad_kernel.cu:151
+./srad_kernel.cu:152
+./srad_kernel.cu:153
+./srad_kernel.cu:154
+./srad_kernel.cu:155
+./srad_kernel.cu:196
+./srad_kernel.cu:208
+./srad_kernel.cu:211
+./srad_kernel.cu:216
+./srad_kernel.cu:248
+./srad_kernel.cu:248
+./srad_kernel.cu:248
+./srad_kernel.cu:248
+./srad_kernel.cu:255
+Divergence Issues:
+./srad_kernel.cu:75
+./srad_kernel.cu:75
+./srad_kernel.cu:81
+./srad_kernel.cu:81
+./srad_kernel.cu:87
+./srad_kernel.cu:87
+./srad_kernel.cu:93
+./srad_kernel.cu:93
+./srad_kernel.cu:100
+./srad_kernel.cu:106
+./srad_kernel.cu:112
+./srad_kernel.cu:118
+./srad_kernel.cu:145
+./srad_kernel.cu:146
+./srad_kernel.cu:222
+./srad_kernel.cu:222
+./srad_kernel.cu:228
+./srad_kernel.cu:234
+GPU-Check ran successfully
+make[1]: Leaving directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/srad/srad_v2'

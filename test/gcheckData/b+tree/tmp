@@ -1,0 +1,261 @@
+gcc	 ./main.c \
+		-c \
+		-o ./main.o \
+		-O3
+./main.c: In function ‘transform_to_cuda’:
+./main.c:652:2: warning: implicit declaration of function ‘gettimeofday’ [-Wimplicit-function-declaration]
+  gettimeofday (&one, NULL);
+  ^
+./main.c:737:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘long int’ [-Wformat=]
+   printf("\nNumber of records = %d, sizeof(record)=%d, total=%d\n",size,sizeof(record),size*sizeof(record));
+          ^
+./main.c:737:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘long unsigned int’ [-Wformat=]
+./main.c:737:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 4 has type ‘long unsigned int’ [-Wformat=]
+./main.c:738:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘long int’ [-Wformat=]
+   printf("Number of knodes = %d, sizeof(knode)=%d, total=%d\n",nodeindex,sizeof(knode),(nodeindex)*sizeof(knode));
+          ^
+./main.c:738:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘long unsigned int’ [-Wformat=]
+./main.c:738:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 4 has type ‘long unsigned int’ [-Wformat=]
+./main.c:739:10: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘long int’ [-Wformat=]
+   printf("\nDone Transformation. Mem used: %d\n", mem_used);
+          ^
+./main.c: In function ‘print_tree’:
+./main.c:930:10: warning: format ‘%x’ expects argument of type ‘unsigned int’, but argument 2 has type ‘node * {aka struct node *}’ [-Wformat=]
+   printf("(%x)", n);
+          ^
+./main.c:933:11: warning: format ‘%x’ expects argument of type ‘unsigned int’, but argument 2 has type ‘void *’ [-Wformat=]
+    printf("%x ", n->pointers[i]);
+           ^
+./main.c:941:11: warning: format ‘%x’ expects argument of type ‘unsigned int’, but argument 2 has type ‘void *’ [-Wformat=]
+    printf("%x ", n->pointers[order - 1]);
+           ^
+./main.c:943:11: warning: format ‘%x’ expects argument of type ‘unsigned int’, but argument 2 has type ‘void *’ [-Wformat=]
+    printf("%x ", n->pointers[n->num_keys]);
+           ^
+./main.c: In function ‘main’:
+./main.c:1866:2: warning: implicit declaration of function ‘cudaSetDevice’ [-Wimplicit-function-declaration]
+  cudaSetDevice(device);
+  ^
+./main.c:1958:37: warning: passing argument 2 of ‘fputs’ from incompatible pointer type [-Wincompatible-pointer-types]
+        fputs ("Fail to open %s !\n",output);
+                                     ^
+In file included from ./main.c:60:0:
+/usr/include/stdio.h:689:12: note: expected ‘FILE * restrict {aka struct _IO_FILE * restrict}’ but argument is of type ‘char *’
+ extern int fputs (const char *__restrict __s, FILE *__restrict __stream);
+            ^
+./main.c:2148:48: warning: comparison between pointer and integer
+     while(*commandPointer!=32 && commandPointer!='\n')
+                                                ^
+./main.c:2224:38: warning: passing argument 2 of ‘fputs’ from incompatible pointer type [-Wincompatible-pointer-types]
+         fputs ("Fail to open %s !\n",output);
+                                      ^
+In file included from ./main.c:60:0:
+/usr/include/stdio.h:689:12: note: expected ‘FILE * restrict {aka struct _IO_FILE * restrict}’ but argument is of type ‘char *’
+ extern int fputs (const char *__restrict __s, FILE *__restrict __stream);
+            ^
+./main.c:2278:48: warning: comparison between pointer and integer
+     while(*commandPointer!=32 && commandPointer!='\n')
+                                                ^
+./main.c:2283:48: warning: comparison between pointer and integer
+     while(*commandPointer!=32 && commandPointer!='\n')
+                                                ^
+./main.c:2371:38: warning: passing argument 2 of ‘fputs’ from incompatible pointer type [-Wincompatible-pointer-types]
+         fputs ("Fail to open %s !\n",output);
+                                      ^
+In file included from ./main.c:60:0:
+/usr/include/stdio.h:689:12: note: expected ‘FILE * restrict {aka struct _IO_FILE * restrict}’ but argument is of type ‘char *’
+ extern int fputs (const char *__restrict __s, FILE *__restrict __stream);
+            ^
+./main.c:1994:3: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+   fscanf(file_pointer, "%d\n", &input);
+   ^
+./main.c:1999:4: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+    fscanf(file_pointer, "%d\n", &input);
+    ^
+./main.c:2039:5: warning: ignoring return value of ‘scanf’, declared with attribute warn_unused_result [-Wunused-result]
+     scanf("%d", &input);
+     ^
+./main.c:2060:5: warning: ignoring return value of ‘scanf’, declared with attribute warn_unused_result [-Wunused-result]
+     scanf("%d", &input);
+     ^
+./main.c:2076:5: warning: ignoring return value of ‘scanf’, declared with attribute warn_unused_result [-Wunused-result]
+     scanf("%d", &input);
+     ^
+./main.c:2252:5: warning: ignoring return value of ‘scanf’, declared with attribute warn_unused_result [-Wunused-result]
+     scanf("%d", &start);
+     ^
+./main.c:2253:5: warning: ignoring return value of ‘scanf’, declared with attribute warn_unused_result [-Wunused-result]
+     scanf("%d", &end);
+     ^
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  ./kernel/kernel_gpu_cuda_wrapper.cu \
+			-c \
+			-o ./kernel/kernel_gpu_cuda_wrapper.o \
+			-O3 \
+			-arch sm_20
+./kernel/kernel_gpu_cuda_wrapper.cu:268:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: SET DEVICE / DRIVER INIT\n",        (float) (time1-time0) / 1000000, (float) (time1-time0) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:269:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: ALO\n",                                         (float) (time2-time1) / 1000000, (float) (time2-time1) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:270:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY IN\n",                                     (float) (time3-time2) / 1000000, (float) (time3-time2) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:272:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: KERNEL\n",                                          (float) (time4-time3) / 1000000, (float) (time4-time3) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:274:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY OUT\n",                            (float) (time5-time4) / 1000000, (float) (time5-time4) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:275:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: FRE\n",                                         (float) (time6-time5) / 1000000, (float) (time6-time5) / (float) (time6-time0) * 100);
+                                   ~~^
+6 warnings generated.
+./kernel/kernel_gpu_cuda_wrapper.cu:268:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: SET DEVICE / DRIVER INIT\n",        (float) (time1-time0) / 1000000, (float) (time1-time0) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:269:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: ALO\n",                                         (float) (time2-time1) / 1000000, (float) (time2-time1) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:270:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY IN\n",                                     (float) (time3-time2) / 1000000, (float) (time3-time2) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:272:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: KERNEL\n",                                          (float) (time4-time3) / 1000000, (float) (time4-time3) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:274:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY OUT\n",                            (float) (time5-time4) / 1000000, (float) (time5-time4) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper.cu:275:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: FRE\n",                                         (float) (time6-time5) / 1000000, (float) (time6-time5) / (float) (time6-time0) * 100);
+                                   ~~^
+6 warnings generated.
+Memory Coalescing Issues:
+./kernel/./kernel_gpu_cuda.cu:47
+Divergence Issues:
+./kernel/./kernel_gpu_cuda_2.cu:29
+./kernel/./kernel_gpu_cuda_2.cu:29
+./kernel/./kernel_gpu_cuda_2.cu:33
+./kernel/./kernel_gpu_cuda_2.cu:37
+./kernel/./kernel_gpu_cuda_2.cu:37
+./kernel/./kernel_gpu_cuda_2.cu:41
+./kernel/./kernel_gpu_cuda_2.cu:48
+./kernel/./kernel_gpu_cuda_2.cu:56
+./kernel/./kernel_gpu_cuda_2.cu:62
+./kernel/./kernel_gpu_cuda.cu:26
+./kernel/./kernel_gpu_cuda.cu:26
+./kernel/./kernel_gpu_cuda.cu:30
+./kernel/./kernel_gpu_cuda.cu:37
+./kernel/./kernel_gpu_cuda.cu:46
+GPU-Check ran successfully
+/home/taylor/git/coalescingsa-llvm/test/gpu-check  ./kernel/kernel_gpu_cuda_wrapper_2.cu \
+			-c \
+			-o ./kernel/kernel_gpu_cuda_wrapper_2.o \
+			-O3 \
+			-arch sm_20
+./kernel/kernel_gpu_cuda_wrapper_2.cu:327:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: SET DEVICE / DRIVER INIT\n",        (float) (time1-time0) / 1000000, (float) (time1-time0) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:328:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: ALO\n",                                         (float) (time2-time1) / 1000000, (float) (time2-time1) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:329:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY IN\n",                                     (float) (time3-time2) / 1000000, (float) (time3-time2) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:331:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: KERNEL\n",                                          (float) (time4-time3) / 1000000, (float) (time4-time3) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:333:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY OUT\n",                            (float) (time5-time4) / 1000000, (float) (time5-time4) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:334:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: FRE\n",                                         (float) (time6-time5) / 1000000, (float) (time6-time5) / (float) (time6-time0) * 100);
+                                   ~~^
+6 warnings generated.
+./kernel/kernel_gpu_cuda_wrapper_2.cu:327:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: SET DEVICE / DRIVER INIT\n",        (float) (time1-time0) / 1000000, (float) (time1-time0) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:328:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: ALO\n",                                         (float) (time2-time1) / 1000000, (float) (time2-time1) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:329:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY IN\n",                                     (float) (time3-time2) / 1000000, (float) (time3-time2) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:331:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU: KERNEL\n",                                          (float) (time4-time3) / 1000000, (float) (time4-time3) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:333:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: COPY OUT\n",                            (float) (time5-time4) / 1000000, (float) (time5-time4) / (float) (time6-time0) * 100);
+                                   ~~^
+./kernel/kernel_gpu_cuda_wrapper_2.cu:334:31: warning: invalid conversion specifier ':' [-Wformat-invalid-specifier]
+        printf("%15.12f s, %15.12f % : GPU MEM: FRE\n",                                         (float) (time6-time5) / 1000000, (float) (time6-time5) / (float) (time6-time0) * 100);
+                                   ~~^
+6 warnings generated.
+Memory Coalescing Issues:
+./kernel/./kernel_gpu_cuda.cu:47
+Divergence Issues:
+./kernel/./kernel_gpu_cuda_2.cu:29
+./kernel/./kernel_gpu_cuda_2.cu:29
+./kernel/./kernel_gpu_cuda_2.cu:33
+./kernel/./kernel_gpu_cuda_2.cu:37
+./kernel/./kernel_gpu_cuda_2.cu:37
+./kernel/./kernel_gpu_cuda_2.cu:41
+./kernel/./kernel_gpu_cuda_2.cu:48
+./kernel/./kernel_gpu_cuda_2.cu:56
+./kernel/./kernel_gpu_cuda_2.cu:62
+./kernel/./kernel_gpu_cuda.cu:26
+./kernel/./kernel_gpu_cuda.cu:26
+./kernel/./kernel_gpu_cuda.cu:30
+./kernel/./kernel_gpu_cuda.cu:37
+./kernel/./kernel_gpu_cuda.cu:46
+GPU-Check ran successfully
+gcc	./util/timer/timer.c \
+		-c \
+		-o ./util/timer/timer.o \
+		-O3
+./util/timer/timer.c: In function ‘get_time’:
+./util/timer/timer.c:26:2: warning: implicit declaration of function ‘gettimeofday’ [-Wimplicit-function-declaration]
+  gettimeofday(&tv, NULL);
+  ^
+gcc	./util/num/num.c \
+		-c \
+		-o ./util/num/num.o \
+		-O3
+/home/taylor/git/coalescingsa-llvm/test/gpu-check	./util/cuda/cuda.cu \
+			-c \
+			-o ./util/cuda/cuda.o \
+			-O3 \
+			-arch sm_20
+Memory Coalescing Issues:
+./kernel/./kernel_gpu_cuda.cu:47
+Divergence Issues:
+./kernel/./kernel_gpu_cuda_2.cu:29
+./kernel/./kernel_gpu_cuda_2.cu:29
+./kernel/./kernel_gpu_cuda_2.cu:33
+./kernel/./kernel_gpu_cuda_2.cu:37
+./kernel/./kernel_gpu_cuda_2.cu:37
+./kernel/./kernel_gpu_cuda_2.cu:41
+./kernel/./kernel_gpu_cuda_2.cu:48
+./kernel/./kernel_gpu_cuda_2.cu:56
+./kernel/./kernel_gpu_cuda_2.cu:62
+./kernel/./kernel_gpu_cuda.cu:26
+./kernel/./kernel_gpu_cuda.cu:26
+./kernel/./kernel_gpu_cuda.cu:30
+./kernel/./kernel_gpu_cuda.cu:37
+./kernel/./kernel_gpu_cuda.cu:46
+GPU-Check ran successfully
+gcc	./main.o \
+		./kernel/kernel_gpu_cuda_wrapper.o \
+		./kernel/kernel_gpu_cuda_wrapper_2.o \
+		./util/timer/timer.o \
+		./util/num/num.o \
+		./util/cuda/cuda.o \
+		-lm \
+		-L/usr/local/cuda/lib64 \
+		-lcuda -lcudart\
+                       -o b+tree.out
+gcc: error: ./kernel/kernel_gpu_cuda_wrapper.o: No such file or directory
+gcc: error: ./kernel/kernel_gpu_cuda_wrapper_2.o: No such file or directory
+gcc: error: ./util/cuda/cuda.o: No such file or directory
+Makefile:94: recipe for target 'b+tree.out' failed
+make: *** [b+tree.out] Error 1

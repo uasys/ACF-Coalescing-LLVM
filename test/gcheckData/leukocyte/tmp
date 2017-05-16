@@ -1,0 +1,467 @@
+cd CUDA; make
+make[1]: Entering directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/leukocyte/CUDA'
+gcc -g -O3 -Wall -I../meschach_lib detect_main.c -c
+gcc   -g -O3 -Wall -I../meschach_lib avilib.h -c
+gcc   -g -O3 -Wall -I../meschach_lib find_ellipse.h -c
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -I/usr/local/cuda/include -I/usr/local/cuda-5.5/samples//common/inc -O3 -c find_ellipse_kernel.cu
+find_ellipse_kernel.cu:57:14: error: no matching function for call to 'tex1Dfetch'
+                        float p = tex1Dfetch(t_grad_x,addr) * c_cos_angle[n] + 
+                                  ^~~~~~~~~~
+/usr/local/cuda/include/texture_indirect_functions.h:122:21: note: candidate template ignored: couldn't infer template argument 'T'
+static __device__ T tex1Dfetch(cudaTextureObject_t texObject, int x)
+                    ^
+/usr/local/cuda/include/texture_indirect_functions.h:90:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:74:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char *, cudaTextureObject_t, int) asm("__itex1Dfetch_char_as_schar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:76:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(signed char *, cudaTextureObject_t, int) asm("__itex1Dfetch_schar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:77:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:78:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:79:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:80:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned char *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:81:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:82:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:83:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:85:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short *, cudaTextureObject_t, int) asm("__itex1Dfetch_short");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:86:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:87:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:88:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:89:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned short *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:91:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:92:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:94:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int *, cudaTextureObject_t, int) asm("__itex1Dfetch_int");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:95:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:96:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:97:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:98:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned int *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:99:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:100:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:101:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:114:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float *, cudaTextureObject_t, int) asm("__itex1Dfetch_float");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:115:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:116:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:117:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float4");
+                                   ^
+find_ellipse_kernel.cu:58:8: error: no matching function for call to 'tex1Dfetch'
+                                          tex1Dfetch(t_grad_y,addr) * c_sin_angle[n];
+                                          ^~~~~~~~~~
+/usr/local/cuda/include/texture_indirect_functions.h:122:21: note: candidate template ignored: couldn't infer template argument 'T'
+static __device__ T tex1Dfetch(cudaTextureObject_t texObject, int x)
+                    ^
+/usr/local/cuda/include/texture_indirect_functions.h:90:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:74:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char *, cudaTextureObject_t, int) asm("__itex1Dfetch_char_as_schar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:76:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(signed char *, cudaTextureObject_t, int) asm("__itex1Dfetch_schar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:77:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:78:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:79:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:80:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned char *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:81:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:82:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:83:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:85:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short *, cudaTextureObject_t, int) asm("__itex1Dfetch_short");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:86:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:87:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:88:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:89:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned short *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:91:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:92:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:94:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int *, cudaTextureObject_t, int) asm("__itex1Dfetch_int");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:95:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:96:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:97:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:98:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned int *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:99:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:100:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:101:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:114:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float *, cudaTextureObject_t, int) asm("__itex1Dfetch_float");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:115:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:116:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:117:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float4");
+                                   ^
+find_ellipse_kernel.cu:176:20: error: no matching function for call to 'tex1Dfetch'
+                                                float temp = tex1Dfetch(t_img, addr);
+                                                             ^~~~~~~~~~
+/usr/local/cuda/include/texture_indirect_functions.h:122:21: note: candidate template ignored: couldn't infer template argument 'T'
+static __device__ T tex1Dfetch(cudaTextureObject_t texObject, int x)
+                    ^
+/usr/local/cuda/include/texture_indirect_functions.h:90:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:74:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char *, cudaTextureObject_t, int) asm("__itex1Dfetch_char_as_schar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:76:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(signed char *, cudaTextureObject_t, int) asm("__itex1Dfetch_schar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:77:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:78:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:79:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(char4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_char4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:80:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned char *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:81:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:82:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:83:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uchar4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uchar4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:85:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short *, cudaTextureObject_t, int) asm("__itex1Dfetch_short");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:86:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:87:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:88:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(short4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_short4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:89:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned short *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:91:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:92:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(ushort4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_ushort4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:94:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int *, cudaTextureObject_t, int) asm("__itex1Dfetch_int");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:95:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:96:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:97:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(int4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_int4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:98:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(unsigned int *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:99:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:100:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:101:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(uint4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_uint4");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:114:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float *, cudaTextureObject_t, int) asm("__itex1Dfetch_float");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:115:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float1 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float1");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:116:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float2 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float2");
+                                   ^
+/usr/local/cuda/include/texture_indirect_functions.h:117:36: note: candidate function not viable: requires 3 arguments, but 2 were provided
+__device__ __cudart_builtin__ void tex1Dfetch(float4 *, cudaTextureObject_t, int) asm("__itex1Dfetch_float4");
+                                   ^
+3 errors generated.
+gcc   -g -O3 -Wall -I../meschach_lib track_ellipse.h -c
+/home/taylor/git/coalescingsa-llvm/test/gpu-check -I/usr/local/cuda/include -I/usr/local/cuda-5.5/samples//common/inc -O3 -I../meschach_lib -c track_ellipse_kernel.cu
+Memory Coalescing Issues:
+track_ellipse_kernel.cu:76
+track_ellipse_kernel.cu:154
+track_ellipse_kernel.cu:223
+Divergence Issues:
+track_ellipse_kernel.cu:76
+track_ellipse_kernel.cu:115
+track_ellipse_kernel.cu:120
+track_ellipse_kernel.cu:122
+track_ellipse_kernel.cu:123
+track_ellipse_kernel.cu:124
+track_ellipse_kernel.cu:125
+track_ellipse_kernel.cu:161
+track_ellipse_kernel.cu:169
+track_ellipse_kernel.cu:187
+track_ellipse_kernel.cu:195
+track_ellipse_kernel.cu:202
+track_ellipse_kernel.cu:204
+track_ellipse_kernel.cu:223
+GPU-Check ran successfully
+gcc   -g -O3 -Wall -I../meschach_lib misc_math.h -c
+cd ../meschach_lib; ./configure --with-all; make all; make clean
+loading cache ./config.cache
+checking for acc... no
+checking for cc... (cached) no
+checking for gcc... (cached) no
+checking for cc... (cached) no
+configure: error: no acceptable cc found in $PATH
+make[2]: Entering directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/leukocyte/meschach_lib'
+cc -c -O -DHAVE_CONFIG_H copy.c
+cc -c -O -DHAVE_CONFIG_H err.c
+err.c: In function ‘err_list_attach’:
+err.c:146:9: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+  if ( ! isatty(fileno(stdout)) )
+         ^
+cc -c -O -DHAVE_CONFIG_H matrixio.c
+matrixio.c: In function ‘m_finput’:
+matrixio.c:91:11: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+      if ( isatty(fileno(fp)) )
+           ^
+matrixio.c: In function ‘im_finput’:
+matrixio.c:150:4: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+    fscanf(fp,"%c",&c);
+    ^
+cc -c -O -DHAVE_CONFIG_H memory.c
+cc -c -O -DHAVE_CONFIG_H vecop.c
+cc -c -O -DHAVE_CONFIG_H matop.c
+cc -c -O -DHAVE_CONFIG_H pxop.c
+cc -c -O -DHAVE_CONFIG_H submat.c
+cc -c -O -DHAVE_CONFIG_H init.c
+cc -c -O -DHAVE_CONFIG_H otherio.c
+otherio.c: In function ‘fy_or_n’:
+otherio.c:58:9: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+  if ( ! isatty(fileno(fp)) )
+         ^
+cc -c -O -DHAVE_CONFIG_H machine.c
+cc -c -O -DHAVE_CONFIG_H matlab.c
+matlab.c: In function ‘m_load’:
+matlab.c:193:7: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+       fread(&d_temp,sizeof(double),1,fp);
+       ^
+matlab.c:196:7: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+       fread(&f_temp,sizeof(float),1,fp);
+       ^
+matlab.c:211:7: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+       fread(&d_temp,sizeof(double),1,fp);
+       ^
+matlab.c:213:7: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+       fread(&f_temp,sizeof(float),1,fp);
+       ^
+cc -c -O -DHAVE_CONFIG_H ivecop.c
+cc -c -O -DHAVE_CONFIG_H version.c
+cc -c -O -DHAVE_CONFIG_H meminfo.c
+meminfo.c: In function ‘mem_bytes_list’:
+meminfo.c:379:9: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+   if ( !isatty(fileno(stdout)) ) {
+         ^
+cc -c -O -DHAVE_CONFIG_H memstat.c
+memstat.c: In function ‘mem_lookup’:
+memstat.c:133:12: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+      if ( !isatty(fileno(stdout)) ) {
+            ^
+ar ru meschach.a copy.o err.o matrixio.o memory.o vecop.o matop.o pxop.o submat.o init.o otherio.o machine.o matlab.o ivecop.o version.o meminfo.o memstat.o; ranlib meschach.a
+ar: `u' modifier ignored since `D' is the default (see `U')
+ar: creating meschach.a
+cc -c -O -DHAVE_CONFIG_H lufactor.c
+cc -c -O -DHAVE_CONFIG_H bkpfacto.c
+cc -c -O -DHAVE_CONFIG_H chfactor.c
+cc -c -O -DHAVE_CONFIG_H qrfactor.c
+cc -c -O -DHAVE_CONFIG_H solve.c
+cc -c -O -DHAVE_CONFIG_H hsehldr.c
+cc -c -O -DHAVE_CONFIG_H givens.c
+cc -c -O -DHAVE_CONFIG_H update.c
+cc -c -O -DHAVE_CONFIG_H norm.c
+cc -c -O -DHAVE_CONFIG_H hessen.c
+cc -c -O -DHAVE_CONFIG_H symmeig.c
+cc -c -O -DHAVE_CONFIG_H schur.c
+cc -c -O -DHAVE_CONFIG_H svd.c
+cc -c -O -DHAVE_CONFIG_H fft.c
+cc -c -O -DHAVE_CONFIG_H mfunc.c
+cc -c -O -DHAVE_CONFIG_H bdfactor.c
+ar ru meschach.a lufactor.o bkpfacto.o chfactor.o qrfactor.o solve.o hsehldr.o givens.o update.o norm.o hessen.o symmeig.o schur.o svd.o fft.o mfunc.o bdfactor.o; ranlib meschach.a
+ar: `u' modifier ignored since `D' is the default (see `U')
+cc -c -O -DHAVE_CONFIG_H sparse.c
+cc -c -O -DHAVE_CONFIG_H sprow.c
+cc -c -O -DHAVE_CONFIG_H sparseio.c
+sparseio.c: In function ‘sp_finput’:
+sparseio.c:219:8: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+  tty = isatty(fileno(fp));
+        ^
+sparseio.c:296:3: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+   fscanf(fp,"SparseMatrix:");
+   ^
+cc -c -O -DHAVE_CONFIG_H spchfctr.c
+cc -c -O -DHAVE_CONFIG_H splufctr.c
+cc -c -O -DHAVE_CONFIG_H spbkp.c
+cc -c -O -DHAVE_CONFIG_H spswap.c
+cc -c -O -DHAVE_CONFIG_H iter0.c
+cc -c -O -DHAVE_CONFIG_H itersym.c
+cc -c -O -DHAVE_CONFIG_H iternsym.c
+ar ru meschach.a sparse.o sprow.o sparseio.o spchfctr.o splufctr.o spbkp.o spswap.o iter0.o itersym.o iternsym.o; ranlib meschach.a
+ar: `u' modifier ignored since `D' is the default (see `U')
+cc -c -O -DHAVE_CONFIG_H zmachine.c
+cc -c -O -DHAVE_CONFIG_H zcopy.c
+cc -c -O -DHAVE_CONFIG_H zmatio.c
+zmatio.c: In function ‘z_finput’:
+zmatio.c:54:10: warning: implicit declaration of function ‘isatty’ [-Wimplicit-function-declaration]
+     if ( isatty(fileno(fp)) )
+          ^
+zmatio.c: In function ‘izm_finput’:
+zmatio.c:150:4: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+    fscanf(fp,"%c",&c);
+    ^
+cc -c -O -DHAVE_CONFIG_H zmemory.c
+cc -c -O -DHAVE_CONFIG_H zvecop.c
+cc -c -O -DHAVE_CONFIG_H zmatop.c
+cc -c -O -DHAVE_CONFIG_H znorm.c
+cc -c -O -DHAVE_CONFIG_H zfunc.c
+ar ru meschach.a zmachine.o zcopy.o zmatio.o zmemory.o zvecop.o zmatop.o znorm.o zfunc.o ; ranlib meschach.a
+ar: `u' modifier ignored since `D' is the default (see `U')
+cc -c -O -DHAVE_CONFIG_H zlufctr.c
+cc -c -O -DHAVE_CONFIG_H zsolve.c
+cc -c -O -DHAVE_CONFIG_H zmatlab.c
+zmatlab.c: In function ‘zm_load’:
+zmatlab.c:189:6: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+      fread(&d_temp,sizeof(double),1,fp);
+      ^
+zmatlab.c:192:6: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+      fread(&f_temp,sizeof(float),1,fp);
+      ^
+zmatlab.c:207:3: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+   fread(&d_temp,sizeof(double),1,fp);
+   ^
+zmatlab.c:210:3: warning: ignoring return value of ‘fread’, declared with attribute warn_unused_result [-Wunused-result]
+   fread(&f_temp,sizeof(float),1,fp);
+   ^
+cc -c -O -DHAVE_CONFIG_H zhsehldr.c
+cc -c -O -DHAVE_CONFIG_H zqrfctr.c
+cc -c -O -DHAVE_CONFIG_H zgivens.c
+cc -c -O -DHAVE_CONFIG_H zhessen.c
+cc -c -O -DHAVE_CONFIG_H zschur.c
+ar ru meschach.a zlufctr.o zsolve.o zmatlab.o zhsehldr.o zqrfctr.o zgivens.o  zhessen.o zschur.o; ranlib meschach.a
+ar: `u' modifier ignored since `D' is the default (see `U')
+make[2]: Leaving directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/leukocyte/meschach_lib'
+make[2]: Entering directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/leukocyte/meschach_lib'
+/bin/rm -f *.o core asx5213a.mat iotort.dat 
+make[2]: Leaving directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/leukocyte/meschach_lib'
+gcc -g -O3 -Wall -I../meschach_lib -lm avilib.o find_ellipse.o find_ellipse_kernel.o track_ellipse.o track_ellipse_kernel.o misc_math.o detect_main.o -o leukocyte ../meschach_lib/meschach.a -L/usr/local/cuda/lib64 -lm -lcuda -lcudart
+gcc: error: avilib.o: No such file or directory
+gcc: error: find_ellipse.o: No such file or directory
+gcc: error: find_ellipse_kernel.o: No such file or directory
+gcc: error: track_ellipse.o: No such file or directory
+gcc: error: track_ellipse_kernel.o: No such file or directory
+gcc: error: misc_math.o: No such file or directory
+Makefile:32: recipe for target 'leukocyte' failed
+make[1]: *** [leukocyte] Error 1
+make[1]: Leaving directory '/home/taylor/git/coalescingsa-llvm/test/rodinia_3.1/cuda/leukocyte/CUDA'
+Makefile:4: recipe for target 'CUDA/leukocyte' failed
+make: *** [CUDA/leukocyte] Error 2
