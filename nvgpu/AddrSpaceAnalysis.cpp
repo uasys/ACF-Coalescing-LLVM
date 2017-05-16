@@ -53,14 +53,13 @@ bool AddrSpaceAnalysis::runOnModule(Module &M) {
 }
 
 bool AddrSpaceAnalysis::mayBeGlobal(Value *v) {
+  // Attempt to dig down to the base
   if(auto L=dyn_cast<LoadInst>(v)) {
     return mayBeGlobal(L->getPointerOperand());
   }
   if(auto S=dyn_cast<StoreInst>(v)) {
     return mayBeGlobal(S->getPointerOperand());
   }
-
-
   if(auto OP=dyn_cast<Operator>(v)) {
     if(OP->getOpcode() == Instruction::AddrSpaceCast)
       return mayBeGlobal(OP->getOperand(0));
@@ -68,6 +67,7 @@ bool AddrSpaceAnalysis::mayBeGlobal(Value *v) {
   if(auto GEP=dyn_cast<GetElementPtrInst>(v)) {
     return mayBeGlobal(GEP->getPointerOperand());
   }
+
 
   // Simple stack allocation (local)
   if(auto AI=dyn_cast<AllocaInst>(v)) {
