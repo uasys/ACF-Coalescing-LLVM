@@ -91,9 +91,9 @@ namespace gpucheck {
       case OffsetOperator::UDiv: out = lhsi.udiv(rhsi); break;
       case OffsetOperator::SRem: out = lhsi.srem(rhsi); break;
       case OffsetOperator::URem: out = lhsi.urem(rhsi); break;
-      case OffsetOperator::And: out = lhsi.And(rhsi); break;
-      case OffsetOperator::Or: out = lhsi.Or(rhsi); break;
-      case OffsetOperator::Xor: out = lhsi.Xor(rhsi); break;
+      //case OffsetOperator::And: out = lhsi.And(rhsi); break;
+      //case OffsetOperator::Or: out = lhsi.Or(rhsi); break;
+      //case OffsetOperator::Xor: out = lhsi.Xor(rhsi); break;
       case OffsetOperator::Eq: out = lhsi.eq(rhsi); break;
       case OffsetOperator::Neq: out = lhsi.ne(rhsi); break;
       case OffsetOperator::SLT: out = lhsi.slt(rhsi); break;
