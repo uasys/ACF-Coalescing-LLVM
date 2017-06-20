@@ -177,9 +177,102 @@ namespace gpucheck {
         if(lhs->isConst() && lhs->constVal() == 0)
           return lhs;
       }
+      case OffsetOperator::SRem:
+      case OffsetOperator::URem:
+      {
+        // 0%anything is always 0
+        if (lhs->isConst() && lhs->constVal() == 0)
+          return lhs;
+        // 1%anything is always 1
+        if (lhs->isConst() && lhs->constVal() == 1)
+          return lhs;
+        // anything%1 is always 0
+        if (rhs->isConst() && rhs->constVal() == 1)
+          return make_shared<ConstOffsetVal>(0);
+      }
     }
+
+    if (OffsetValPtr simp = simplifyConstantSubExpressions(lhs, bo->op, rhs)) {
+      return simp;
+    }
+
     // Just return the simplified components
     return make_shared<BinOpOffsetVal>(lhs, bo->op, rhs);
+  }
+
+  OffsetValPtr simplifyConstantSubExpressions(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs)
+  {
+    bool boAdd = (op == OffsetOperator::Add);
+    bool boSub = (op == OffsetOperator::Sub);
+
+    if (isa<BinOpOffsetVal>(&*lhs) && rhs->isConst() && (boAdd || boSub)) {
+      auto lhsBinop = dyn_cast<BinOpOffsetVal>(&*lhs);
+      OffsetValPtr llhs = lhsBinop->lhs;
+      OffsetValPtr lrhs = lhsBinop->rhs;
+      if (lrhs->isConst()) {
+        switch (lhsBinop->op) {
+        case OffsetOperator::Add: {
+          APInt newConst = boAdd ? lrhs->constVal() + rhs->constVal() : lrhs->constVal() - rhs->constVal();
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(llhs, lhsBinop->op, make_shared<ConstOffsetVal>(newConst));
+          return simplifyOffsetVal(result);
+        } break;
+        case OffsetOperator::Sub: {
+          APInt newConst = boAdd ? lrhs->constVal() - rhs->constVal() : lrhs->constVal() + rhs->constVal();
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(llhs, lhsBinop->op, make_shared<ConstOffsetVal>(newConst));
+          return simplifyOffsetVal(result);
+          break;
+        }
+        }
+      }
+      else if (llhs->isConst()) {
+        switch (lhsBinop->op) {
+        case OffsetOperator::Sub:
+        case OffsetOperator::Add: {
+          APInt newConst = boAdd ? llhs->constVal() + rhs->constVal() : llhs->constVal() - rhs->constVal();
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(make_shared<ConstOffsetVal>(newConst), lhsBinop->op, lrhs);
+          return simplifyOffsetVal(result);
+        } break;
+        }
+      }
+    }
+    if (isa<BinOpOffsetVal>(&*rhs) && lhs->isConst() && (boAdd || boSub)) {
+      auto rhsBinop = dyn_cast<BinOpOffsetVal>(&*rhs);
+      OffsetValPtr rlhs = rhsBinop->lhs;
+      OffsetValPtr rrhs = rhsBinop->rhs;
+      if (rlhs->isConst()) {
+        switch (rhsBinop->op) {
+        case OffsetOperator::Add: {
+          APInt newConst = boAdd ? lhs->constVal() + rlhs->constVal() : lhs->constVal() - rlhs->constVal();
+          OffsetOperator newOp = boAdd ? rhsBinop->op : OffsetOperator::Sub;
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(make_shared<ConstOffsetVal>(newConst), newOp, rrhs);
+          return simplifyOffsetVal(result);
+        } break;
+        case OffsetOperator::Sub: {
+          APInt newConst = boAdd ? lhs->constVal() + rlhs->constVal() : lhs->constVal() - rlhs->constVal();
+          OffsetOperator newOp = boAdd ? rhsBinop->op : OffsetOperator::Add;
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(make_shared<ConstOffsetVal>(newConst), newOp, rrhs);
+          return simplifyOffsetVal(result);
+        } break;
+        }
+      }
+      if (rrhs->isConst()) {
+        switch (rhsBinop->op) {
+        case OffsetOperator::Add: {
+          APInt newConst = boAdd ? lhs->constVal() + rrhs->constVal() : lhs->constVal() - rrhs->constVal();
+          OffsetOperator newOp = boAdd ? rhsBinop->op : OffsetOperator::Sub;
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(make_shared<ConstOffsetVal>(newConst), newOp, rlhs);
+          return simplifyOffsetVal(result);
+        } break;
+        case OffsetOperator::Sub: {
+          APInt newConst = boAdd ? lhs->constVal() - rrhs->constVal() : lhs->constVal() + rrhs->constVal();
+          OffsetOperator newOp = boAdd ? rhsBinop->op : OffsetOperator::Sub;
+          OffsetValPtr result = make_shared<BinOpOffsetVal>(make_shared<ConstOffsetVal>(newConst), newOp, rlhs);
+          return simplifyOffsetVal(result);
+        } break;
+        }
+      }
+    }
+    return nullptr;
   }
 
   bool matchingOffsets(OffsetValPtr lhs, OffsetValPtr rhs) {

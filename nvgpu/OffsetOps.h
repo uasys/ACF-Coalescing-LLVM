@@ -15,6 +15,7 @@ namespace gpucheck {
   OffsetValPtr simplifyOffsetVal(OffsetValPtr ov);
   OffsetValPtr cancelDiffs(OffsetValPtr ov, ThreadDependence& td);
   OffsetValPtr simplifyDifferenceOfProducts(OffsetValPtr addt, OffsetValPtr subt, ThreadDependence& td);
+  OffsetValPtr simplifyConstantSubExpressions(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs);
 
   OffsetValPtr replaceComponents(const OffsetValPtr& orig, std::unordered_map<OffsetValPtr, OffsetValPtr>& rep);
   OffsetValPtr simplifyConstantVal(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs);
