@@ -28,13 +28,23 @@ namespace gpucheck {
   }
 
   OffsetValPtr sumOfProducts(OffsetValPtr ov) {
+    OffsetValPtr tmp = sumOfProductsPass(ov);
+    OffsetValPtr res = sumOfProductsPass(tmp);
+    while (!matchingOffsets(tmp. res)) {
+      tmp = res;
+      res = sumOfProductsPass(tmp);
+    }
+    return res;
+  }
+  
+  OffsetValPtr sumOfProductsPass(OffsetValPtr ov) {
     auto bo=dyn_cast<BinOpOffsetVal>(&*ov);
     if(bo == nullptr)
       return ov;
 
     // We're working with a binary operator
-    OffsetValPtr lhs = sumOfProducts(bo->lhs);
-    OffsetValPtr rhs = sumOfProducts(bo->rhs);
+    OffsetValPtr lhs = sumOfProductsPass(bo->lhs);
+    OffsetValPtr rhs = sumOfProductsPass(bo->rhs);
 
     if(bo->op == OffsetOperator::Mul) {
       auto lhs_bo=dyn_cast<BinOpOffsetVal>(&*lhs);
@@ -51,6 +61,14 @@ namespace gpucheck {
         auto new_lhs = make_shared<BinOpOffsetVal>(lhs, bo->op, rhs_bo->lhs);
         auto new_rhs = make_shared<BinOpOffsetVal>(lhs, bo->op, rhs_bo->rhs);
         return make_shared<BinOpOffsetVal>(new_lhs, rhs_bo->op, new_rhs);
+      }
+    }
+    else if (bo->op == OffsetOperator::Div) {
+      auto lhs_bo=dyn_cast<BinOpOffsetVal>(&*lhs);
+      if(lhs_bo != nullptr && (lhs_bo->op == OffsetOperator::Add || lhs_bo->op == OffsetOperator::Sub)) {
+        auto new_lhs = make_shared<BinOpOffsetVal>(lhs_bo->lhs, bo->op, rhs);
+        auto new_rhs = make_shared<BinOpOffsetVal>(lhs_bo->rhs, bo->op, rhs);
+        return make_shared<BinOpOffsetVal>(new_lhs, lhs_bo->op, new_rhs);
       }
     }
 
