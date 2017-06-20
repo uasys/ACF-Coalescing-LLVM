@@ -30,13 +30,13 @@ namespace gpucheck {
   OffsetValPtr sumOfProducts(OffsetValPtr ov) {
     OffsetValPtr tmp = sumOfProductsPass(ov);
     OffsetValPtr res = sumOfProductsPass(tmp);
-    while (!matchingOffsets(tmp. res)) {
+    while (!matchingOffsets(tmp, res)) {
       tmp = res;
       res = sumOfProductsPass(tmp);
     }
     return res;
   }
-  
+
   OffsetValPtr sumOfProductsPass(OffsetValPtr ov) {
     auto bo=dyn_cast<BinOpOffsetVal>(&*ov);
     if(bo == nullptr)
@@ -63,7 +63,7 @@ namespace gpucheck {
         return make_shared<BinOpOffsetVal>(new_lhs, rhs_bo->op, new_rhs);
       }
     }
-    else if (bo->op == OffsetOperator::Div) {
+    else if (bo->op == OffsetOperator::SDiv || bo->op == OffsetOperator::UDiv) {
       auto lhs_bo=dyn_cast<BinOpOffsetVal>(&*lhs);
       if(lhs_bo != nullptr && (lhs_bo->op == OffsetOperator::Add || lhs_bo->op == OffsetOperator::Sub)) {
         auto new_lhs = make_shared<BinOpOffsetVal>(lhs_bo->lhs, bo->op, rhs);
@@ -302,6 +302,13 @@ namespace gpucheck {
             changed = true;
             break;
           }
+          if (OffsetValPtr simp = simplifyDifferenceOfProducts(*o_a, *o_s, td)) {
+            added.erase(o_a);
+            subtracted.erase(o_s);
+            changed = true;
+            addToVector(simp, added,subtracted);
+            break;
+          }
         }
         if(changed)
           break;
@@ -345,5 +352,44 @@ namespace gpucheck {
       return orig; // No changes were made
     else
       return make_shared<BinOpOffsetVal>(lhs, bo->op, rhs);
+  }
+
+  // Returns NULL if unable to change anything
+  OffsetValPtr simplifyDifferenceOfProducts(OffsetValPtr addt, OffsetValPtr subt, ThreadDependence& td) {
+    auto bo_a = dyn_cast<BinOpOffsetVal>(&*addt);
+    auto bo_s = dyn_cast<BinOpOffsetVal>(&*subt);
+    if (bo_a && bo_s && bo_a->op == OffsetOperator::Mul && bo_s->op == OffsetOperator::Mul) {
+      OffsetValPtr a_lhs = bo_a->lhs, s_lhs = bo_s->lhs;
+      OffsetValPtr a_rhs = bo_a->rhs, s_rhs = bo_s->rhs;
+      if (equalOffsets(a_rhs, s_rhs, td)) {
+        // ax-bx
+        OffsetValPtr origDiff = make_shared<BinOpOffsetVal>(addt, OffsetOperator::Sub, subt);
+        // (a-b)
+        OffsetValPtr lhsDiff = make_shared<BinOpOffsetVal>(a_lhs, OffsetOperator::Sub, s_lhs);
+        // cancellDiff on (a-b)
+        OffsetValPtr new_lhs = cancelDiffs(lhsDiff, td);
+        OffsetValPtr new_binop = make_shared<BinOpOffsetVal>(new_lhs, OffsetOperator::Mul, s_rhs);
+        OffsetValPtr newsop = sumOfProducts(new_binop);
+        OffsetValPtr oldsop = sumOfProducts(origDiff);
+        // Did not achieve anything, important for termination.
+        if (matchingOffsets(simplifyOffsetVal(newsop), simplifyOffsetVal(oldsop)))
+          return nullptr;
+        else
+          return newsop;
+      }
+      else if (equalOffsets(a_lhs, s_lhs, td)) {
+        OffsetValPtr origDiff = make_shared<BinOpOffsetVal>(addt, OffsetOperator::Sub, subt);
+        OffsetValPtr rhsDiff = make_shared<BinOpOffsetVal>(a_rhs, OffsetOperator::Sub, s_rhs);
+        OffsetValPtr new_rhs = cancelDiffs(rhsDiff, td);
+        OffsetValPtr new_binop = make_shared<BinOpOffsetVal>(s_lhs, OffsetOperator::Mul, new_rhs);
+        OffsetValPtr newsop = sumOfProducts(new_binop);
+        OffsetValPtr oldsop = sumOfProducts(origDiff);
+        if (matchingOffsets(simplifyOffsetVal(newsop), simplifyOffsetVal(oldsop)))
+          return nullptr;
+        else
+          return newsop;
+      }
+    }
+    return nullptr;
   }
 }

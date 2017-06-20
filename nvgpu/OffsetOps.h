@@ -14,8 +14,10 @@ namespace gpucheck {
   OffsetValPtr negateCondition(OffsetValPtr& cond);
   OffsetValPtr simplifyOffsetVal(OffsetValPtr ov);
   OffsetValPtr cancelDiffs(OffsetValPtr ov, ThreadDependence& td);
+  OffsetValPtr simplifyDifferenceOfProducts(OffsetValPtr addt, OffsetValPtr subt, ThreadDependence& td);
 
   OffsetValPtr replaceComponents(const OffsetValPtr& orig, std::unordered_map<OffsetValPtr, OffsetValPtr>& rep);
   OffsetValPtr simplifyConstantVal(OffsetValPtr lhs, OffsetOperator op, OffsetValPtr rhs);
+  bool matchingOffsets(OffsetValPtr lhs, OffsetValPtr rhs);
 }
 #endif
