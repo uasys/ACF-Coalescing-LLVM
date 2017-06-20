@@ -88,6 +88,7 @@ namespace gpucheck {
 
     // Start calculating offsets
     Type *t = ptr_t;
+
     for(auto i=idx_begin,e=idx_end; i!=e; ++i) {
       OffsetValPtr idx_off;
 
@@ -122,7 +123,21 @@ namespace gpucheck {
 
         // Update the type for next iteration
         t = seq_t->getElementType();
+        
+      } else if(auto seq_t=dyn_cast<PointerType>(t)) {
+        // Calculate the offset to the array element
+        OffsetValPtr idx = getOrCreateVal(*i);
+
+        // Calculate the size to step
+        OffsetValPtr size = make_shared<ConstOffsetVal>(DL.getTypeAllocSize(seq_t->getElementType()));
+
+        idx_off = make_shared<BinOpOffsetVal>(idx, Mul, size);
+
+        // Update the type for next iteration
+        t = seq_t->getElementType();
+        
       } else {
+        errs() << *t << "\n" << (isa<PointerType>(t) ? "T" : "F") << (isa<SequentialType>(t) ? "T" : "F") << "\n";
         assert(false && "GEP must index a struct or sequence");
       }
       offset = make_shared<BinOpOffsetVal>(offset, Add, idx_off);

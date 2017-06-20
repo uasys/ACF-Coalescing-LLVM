@@ -276,8 +276,14 @@ namespace gpucheck {
   }
 
   bool matchingOffsets(OffsetValPtr lhs, OffsetValPtr rhs) {
-    if(lhs->isConst() && rhs->isConst())
-      return lhs->constVal() == rhs->constVal();
+    assert(lhs != nullptr);
+    assert(rhs != nullptr);
+    if(lhs->isConst() && rhs->isConst()) {
+      APInt lhs_c = lhs->constVal();
+      APInt rhs_c = rhs->constVal();
+      uint64_t bitwidth = max(lhs_c.getBitWidth(), rhs_c.getBitWidth());
+      return lhs_c.sextOrSelf(bitwidth) == rhs_c.sextOrSelf(bitwidth);
+    }
 
     auto i_lhs = dyn_cast<InstOffsetVal>(&*lhs);
     auto i_rhs = dyn_cast<InstOffsetVal>(&*rhs);
