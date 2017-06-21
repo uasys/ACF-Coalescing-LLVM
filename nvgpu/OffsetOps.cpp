@@ -9,6 +9,14 @@ namespace gpucheck {
   OffsetValPtr negateCondition(OffsetValPtr& cond) {
     assert(isa<BinOpOffsetVal>(cond.get()));
     auto b=dyn_cast<BinOpOffsetVal>(cond.get());
+    OffsetValPtr lhs = b->lhs;
+    OffsetValPtr rhs = b->rhs;
+    // Logical conditionals, apply DeMorgan's laws.
+    if (b->op == OffsetOperator::And)
+      return make_shared<BinOpOffsetVal>(negateCondition(lhs), OffsetOperator::Or, negateCondition(rhs));
+    else if (b->op == OffsetOperator::Or)
+      return make_shared<BinOpOffsetVal>(negateCondition(lhs), OffsetOperator::And, negateCondition(rhs));
+    // Comparison conditions are negated by flipping the operator.
     OffsetOperator flipped;
     switch(b->op) {
       case OffsetOperator::Eq: flipped = Neq; break;
