@@ -35,9 +35,9 @@ namespace gpucheck {
     return make_shared<BinOpOffsetVal>(b->lhs, flipped, b->rhs);
   }
 
-  OffsetValPtr sumOfProducts(OffsetValPtr ov) {
-    OffsetValPtr tmp = sumOfProductsPass(ov);
-    OffsetValPtr res = sumOfProductsPass(tmp);
+  OffsetValPtr sumOfProducts(OffsetValPtr ov) {    
+    OffsetValPtr tmp = ov;
+    OffsetValPtr res = sumOfProductsPass(ov);
     while (!matchingOffsets(tmp, res)) {
       tmp = res;
       res = sumOfProductsPass(tmp);
