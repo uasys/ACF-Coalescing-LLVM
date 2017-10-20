@@ -145,15 +145,21 @@ namespace gpucheck {
 
         // Update the type for next iteration
         t = seq_t->getElementType();
-      } else if(auto pt=dyn_cast<PointerType>(t)) {
+
+      } else if(auto seq_t=dyn_cast<PointerType>(t)) {
         // Calculate the offset to the array element
         OffsetValPtr idx = getOrCreateVal(*i);
-        OffsetValPtr size = make_shared<ConstOffsetVal>(DL.getTypeAllocSize(pt->getElementType()));
+
+        // Calculate the size to step
+        OffsetValPtr size = make_shared<ConstOffsetVal>(DL.getTypeAllocSize(seq_t->getElementType()));
+
         idx_off = make_shared<BinOpOffsetVal>(idx, Mul, size);
 
-        t = pt->getElementType();
+        // Update the type for next iteration
+        t = seq_t->getElementType();
+
       } else {
-        errs() << "Type: " << *t << "\n";
+        errs() << *t << "\n" << (isa<PointerType>(t) ? "T" : "F") << (isa<SequentialType>(t) ? "T" : "F") << "\n";
         assert(false && "GEP must index a struct or sequence");
       }
       offset = make_shared<BinOpOffsetVal>(offset, Add, idx_off);
