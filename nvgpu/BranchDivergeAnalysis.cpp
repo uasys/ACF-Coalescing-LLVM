@@ -18,7 +18,8 @@ using namespace gpucheck;
 
 #define DEBUG_TYPE "bdiverge"
 
-#define DIVERGE_THRESH 0.2f
+#define DIVERGE_THRESH 0.1f
+
 
 bool BranchDivergeAnalysis::runOnModule(Module &M) {
   TD = &getAnalysis<ThreadDependence>();
@@ -45,13 +46,13 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
             emitWarning("Divergent Branch Detected", B, SEV_MED);
             DEBUG(
               errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
-              B->dump();
+              //B->dump();
               errs() << "\n\n";
             );
           } else {
             DEBUG(
               errs() << "Nondivergent branch, diverge=(" << divergence << ")\n";
-              B->dump();
+              //B->dump();
               errs() << "\n\n";
             );
           }
