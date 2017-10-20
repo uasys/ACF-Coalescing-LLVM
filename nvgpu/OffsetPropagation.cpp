@@ -7,8 +7,21 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/User.h"
+#include "llvm/ADT/Statistic.h"
 
-#define DEBUG_TYPE offset-prop
+#define DEBUG_TYPE "acf"
+
+STATISTIC(ACFTranslations, "Number of ACF Expressions/Subexpressions Generated");
+STATISTIC(ACFBinOpTranslations, "Number of BinOp ACF Expressions Generated");
+STATISTIC(ACFCallTranslations, "Number of Call ACF Expressions Generated");
+STATISTIC(ACFCastTranslations, "Number of Cast ACF Expressions Generated");
+STATISTIC(ACFCmpTranslations, "Number of Cmp ACF Expressions Generated");
+STATISTIC(ACFLoadTranslations, "Number of Load ACF Expressions Generated");
+STATISTIC(ACFPhiTranslations, "Number of Phi ACF Expressions Generated");
+STATISTIC(ACFGEPTranslations, "Number of GEP ACF Expressions Generated");
+STATISTIC(ACFArgTranslations, "Number of Arg ACF Expressions Generated");
+STATISTIC(ACFUnkInstTranslations, "Number of Unknown Instruction ACF Expressions Generated");
+STATISTIC(MaxIACFSize, "Maximum IACF Set Size");
 
 namespace gpucheck {
   using namespace std;
@@ -37,6 +50,7 @@ namespace gpucheck {
   OffsetValPtr OffsetPropagation::getOrCreateVal(Value *v) {
     if(offsets.count(v))
       return offsets[v];
+    ++ACFTranslations;
     if(auto b = dyn_cast<BinaryOperator>(v)) return getOrCreateVal(b);
     if(auto c = dyn_cast<CallInst>(v)) return getOrCreateVal(c);
     if(auto c = dyn_cast<CastInst>(v)) return getOrCreateVal(c);
@@ -53,12 +67,15 @@ namespace gpucheck {
 
     // Fallthrough, unknown instruction
     if(auto i=dyn_cast<Instruction>(v)) {
+      ++ACFUnkInstTranslations;
       offsets[v] = make_shared<InstOffsetVal>(i);
       return offsets[v];
     } else if(auto a=dyn_cast<Argument>(v)) {
+      ++ACFArgTranslations;
       offsets[v] = make_shared<ArgOffsetVal>(a);
       return offsets[v];
     } else {
+      ++ACFUnkInstTranslations;
       offsets[v] = make_shared<UnknownOffsetVal>(v);
       return offsets[v];
     }
@@ -66,6 +83,7 @@ namespace gpucheck {
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(BinaryOperator *bo) {
     // Generate an operator as a function of the binary operator
+    ++ACFBinOpTranslations;
 
     OffsetOperator op = fromBinaryOpcode(bo->getOpcode());
     if(op == OffsetOperator::end) {
@@ -81,6 +99,7 @@ namespace gpucheck {
   }
 
   OffsetValPtr OffsetPropagation::getGEPExpr(Value *ptr, Type *ptr_t, Use *idx_begin, Use *idx_end) {
+    ++ACFGEPTranslations;
 
     const DataLayout& DL = M->getDataLayout();
     // We begin with the offset equal to the base
@@ -88,12 +107,16 @@ namespace gpucheck {
 
     // Start calculating offsets
     Type *t = ptr_t;
+
     for(auto i=idx_begin,e=idx_end; i!=e; ++i) {
       OffsetValPtr idx_off;
 
       if(auto struct_t=dyn_cast<StructType>(t)) {
         // Calculate the offset to the struct element
         OffsetValPtr idx = getOrCreateVal(*i);
+        if(!idx->isConst()) {
+          return make_shared<UnknownOffsetVal>(ptr);
+        }
         assert(idx->isConst()); // Struct references can't be dynamic
 
         int index = idx->constVal().getZExtValue();
@@ -122,7 +145,15 @@ namespace gpucheck {
 
         // Update the type for next iteration
         t = seq_t->getElementType();
+      } else if(auto pt=dyn_cast<PointerType>(t)) {
+        // Calculate the offset to the array element
+        OffsetValPtr idx = getOrCreateVal(*i);
+        OffsetValPtr size = make_shared<ConstOffsetVal>(DL.getTypeAllocSize(pt->getElementType()));
+        idx_off = make_shared<BinOpOffsetVal>(idx, Mul, size);
+
+        t = pt->getElementType();
       } else {
+        errs() << "Type: " << *t << "\n";
         assert(false && "GEP must index a struct or sequence");
       }
       offset = make_shared<BinOpOffsetVal>(offset, Add, idx_off);
@@ -150,16 +181,19 @@ namespace gpucheck {
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(CallInst *ci) {
     //TODO
+    ++ACFCallTranslations;
     offsets[ci] = make_shared<InstOffsetVal>(ci);
     return offsets[ci];
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(CastInst *ci) {
     // Just drop through the cast for now
+    ++ACFCastTranslations;
     return getOrCreateVal(ci->getOperand(0));
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(CmpInst *ci) {
+    ++ACFCmpTranslations;
     OffsetValPtr lhs = getOrCreateVal(ci->getOperand(0));
     OffsetValPtr rhs = getOrCreateVal(ci->getOperand(1));
     OffsetOperator op = fromCmpPredicate(ci->getPredicate());
@@ -207,6 +241,7 @@ namespace gpucheck {
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(LoadInst *l) {
+    ++ACFLoadTranslations;
     Function &f = *l->getParent()->getParent();
 
     MemoryDependenceResults& MD = getAnalysis<MemoryDependenceWrapperPass>(f).getMemDep();
@@ -242,6 +277,7 @@ namespace gpucheck {
   }
 
   OffsetValPtr OffsetPropagation::getOrCreateVal(PHINode *p) {
+    ++ACFPhiTranslations;
     // Get the required analysis
     Function &f = *(p->getFunction());
     DominatorTree &DT = getAnalysis<DominatorTreeWrapperPass>(f).getDomTree();
@@ -546,7 +582,11 @@ namespace gpucheck {
   }
   vector<OffsetValPtr> OffsetPropagation::inContexts(OffsetValPtr& orig) {
     vector<const Function*> empty;
-    return inContexts(orig, empty);
+    vector<OffsetValPtr> iacf = inContexts(orig, empty);
+
+    if(MaxIACFSize.getValue() < iacf.size())
+        MaxIACFSize=iacf.size();
+    return iacf;
   }
 
   vector<OffsetValPtr> OffsetPropagation::inContexts(OffsetValPtr& orig, std::vector<const Function *>& ignore) {
