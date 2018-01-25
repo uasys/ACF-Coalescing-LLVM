@@ -25,11 +25,14 @@ bool BranchDivergeAnalysis::runOnModule(Module &M) {
   TD = &getAnalysis<ThreadDependence>();
   OP = &getAnalysis<OffsetPropagation>();
   // Run over each kernel function
+  candidates = 0;
+  found = 0;
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     if(!f->isDeclaration()) {
       runOnKernel(*f);
     }
   }
+  errs() << "Candidates: " << candidates << ", Found: " << found << "\n";
   return false;
 }
 
@@ -39,10 +42,12 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
     for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
       if(auto B=dyn_cast<BranchInst>(i)) {
         if(B->isConditional() && TD->isDependent(B)) {
+          candidates++;
           // We've found a potentially divergent branch!
           // TODO: Determine if branch is high-cost
           float divergence = getDivergence(B);
           if(divergence > DIVERGE_THRESH) {
+            found++;
             emitWarning("Divergent Branch Detected", B, SEV_MED);
             DEBUG(
               errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
