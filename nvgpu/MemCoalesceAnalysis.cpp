@@ -32,10 +32,13 @@ bool MemCoalesceAnalysis::runOnModule(Module &M) {
   OP = &getAnalysis<OffsetPropagation>();
   ASA = &getAnalysis<AddrSpaceAnalysis>();
   // Run over each GPU function
+  candidates = 0;
+  found = 0;
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     //if(isKernelFunction(*f))
       runOnKernel(*f);
   }
+  errs() << "Candidates: " << candidates << ", Found: " << found << "\n";
   return false;
 }
 
@@ -75,7 +78,7 @@ void MemCoalesceAnalysis::testStore(StoreInst *S) {
 }
 
 bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
-
+  candidates++;
   if(!TD->isDependent(ptr))
     return false;
   // Ignore stack allocations
@@ -97,6 +100,7 @@ bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
   float requests = requestsPerWarp(ptr);
   if(requests > COALESCE_THRES) {
     Severity sev;
+    found++;
     emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev);
     return true;
   }
