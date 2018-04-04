@@ -32,9 +32,9 @@ namespace gpucheck {
       }
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
-      float requestsPerWarp(Value *ptr);
+      std::pair<float,float> requestsPerWarp(Value *ptr);
       MemAccess getAccessType(Instruction *i, Value *address);
-      string getWarning(Value *ptr, MemAccess tpe, float requestsPerWarp, Severity& severity);
+      string getWarning(Value *ptr, MemAccess tpe, std::pair<float,float> requestsPerWarp, Severity& severity);
 
       void testLoad(LoadInst* i);
       void testStore(StoreInst* i);
@@ -46,6 +46,7 @@ namespace gpucheck {
       OffsetPropagation *OP;
       size_t candidates;
       size_t found;
+      size_t unknown;
   };
 
 }

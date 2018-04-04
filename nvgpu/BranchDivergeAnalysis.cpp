@@ -27,12 +27,13 @@ bool BranchDivergeAnalysis::runOnModule(Module &M) {
   // Run over each kernel function
   candidates = 0;
   found = 0;
+  unknown = 0;
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     if(!f->isDeclaration()) {
       runOnKernel(*f);
     }
   }
-  errs() << "Candidates: " << candidates << ", Found: " << found << "\n";
+  errs() << "Candidates: " << candidates << ", Found: " << found << ", Unknown: " << unknown << "\n";
   return false;
 }
 
@@ -45,18 +46,27 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
           candidates++;
           // We've found a potentially divergent branch!
           // TODO: Determine if branch is high-cost
-          float divergence = getDivergence(B);
-          if(divergence > DIVERGE_THRESH) {
+          std::pair<float,float> divergence = getDivergence(B);
+          if(divergence.first > DIVERGE_THRESH) {
             found++;
-            emitWarning("Divergent Branch Detected", B, SEV_MED);
+            emitWarning("Divergent Branch Detected", B, SEV_MED, divergence);
             DEBUG(
-              errs() << "Found Divergent Branch!! diverge=(" << divergence << ")\n";
+              errs() << "Found Divergent Branch!! diverge=(" << divergence.first << "-" << divergence.second << ")\n";
+              //B->dump();
+              errs() << "\n\n";
+            );
+          } else if(divergence.second > DIVERGE_THRESH) {
+            unknown++;
+            emitWarning("Possible Divergent Branch Detected", B, SEV_MED, divergence);
+            DEBUG(
+              errs() << "Possible Divergent Branch!! diverge=(" << divergence.first << "-" << divergence.second << ")\n";
               //B->dump();
               errs() << "\n\n";
             );
           } else {
+            emitWarning("Nondivergent Branch Detected", B, SEV_MED, divergence);
             DEBUG(
-              errs() << "Nondivergent branch, diverge=(" << divergence << ")\n";
+              errs() << "Nondivergent branch, diverge=(" << divergence.first << "-" << divergence.second << ")\n";
               //B->dump();
               errs() << "\n\n";
             );
@@ -68,7 +78,7 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
   return false;
 }
 
-float BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
+std::pair<float,float> BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
   assert(BI->isConditional());
 
   // Get the symbolic offset for the branch pointer
@@ -79,6 +89,7 @@ float BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
   vector<OffsetValPtr> all_paths = OP->inContexts(cond_offset);
   DEBUG(errs() << "Context-sensitive analysis generated " << all_paths.size() << " contexts\n");
 
+  float minDivergence = 1.0f;
   float maxDivergence = 0.0f;
   for(auto path=all_paths.begin(),e=all_paths.end(); path != e; ++path) {
     // Apply some (arbitrary) grid boundaries
@@ -97,25 +108,35 @@ float BranchDivergeAnalysis::getDivergence(BranchInst *BI) {
       DEBUG(cerr << *threadDiff <<"\n");
       auto rnge = threadDiff->constRange();
       DEBUG(errs() << "Range: " << rnge.first << " to " << rnge.second << "\n");
-      return 1.0; // Branch cannot be analyzed in at least 1 context
+      return make_pair<float,float>(0.0f,1.0f); // Branch cannot be analyzed in at least 1 context
     }
 
     int divergent = 0;
+    int unknownDiv = 0;
     for(int warp=0; warp<8; warp++) {
+      bool div = false;
+      bool unk = false;
       OffsetValPtr warpBase = OP->inThreadContext(simp, warp*32, 0, 0, 0, 0, 0);
       for(int i=1; i<32; i++) {
         OffsetValPtr threadBase = OP->inThreadContext(simp, warp*32+i, 0, 0, 0, 0, 0);
         OffsetValPtr threadDiff = cancelDiffs(make_shared<BinOpOffsetVal>(warpBase, Sub, threadBase), *TD);
+        if(!threadDiff->isConst()) {
+          unk = true;
+        }
         if(!threadDiff->isConst() || threadDiff->constVal() != 0) {
-          divergent++;
+          div = true;
           break; // We found divergence, we're done with the warp
         }
       }
+      if (div) divergent++;
+      else if (unk) unknownDiv++;
     }
-    if(divergent/8.0f > maxDivergence)
-      maxDivergence = divergent/8.0f;
+    if((divergent+unknownDiv)/8.0f > maxDivergence)
+      maxDivergence = (divergent+unknownDiv)/8.0f;
+    if(divergent/8.0f < minDivergence)
+      minDivergence = divergent/8.0f;
   }
-  return maxDivergence;
+  return make_pair(minDivergence, maxDivergence);
 }
 
 char BranchDivergeAnalysis::ID = 0;

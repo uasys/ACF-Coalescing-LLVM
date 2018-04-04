@@ -34,11 +34,12 @@ bool MemCoalesceAnalysis::runOnModule(Module &M) {
   // Run over each GPU function
   candidates = 0;
   found = 0;
+  unknown = 0;
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     //if(isKernelFunction(*f))
       runOnKernel(*f);
   }
-  errs() << "Candidates: " << candidates << ", Found: " << found << "\n";
+  errs() << "Candidates: " << candidates << ", Found: " << found << ", Unknown: " << unknown << "\n";
   return false;
 }
 
@@ -92,16 +93,19 @@ bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
     // Don't report updates twice
     return false;
   }
+  std::pair<float,float> requests = requestsPerWarp(ptr);
   DEBUG(errs() << "Found a memory access:\n");
   DEBUG(i->dump());
   DEBUG(errs() << "\n Memory requests required per warp: " <<
-      requestsPerWarp(ptr) << "\n");
+      requests.first << "-" << requests.second << "\n");
   // We have a memory access to inspect
-  float requests = requestsPerWarp(ptr);
-  if(requests > COALESCE_THRES) {
-    Severity sev;
+  Severity sev;
+  emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev, requests);
+  if(requests.first > COALESCE_THRES) {
     found++;
-    emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev);
+    return true;
+  } else if(requests.second > COALESCE_THRES) {
+    unknown++;
     return true;
   }
 
@@ -134,8 +138,8 @@ MemAccess MemCoalesceAnalysis::getAccessType(Instruction *i, Value *address) {
   return MemAccess::Unknown;
 }
 
-string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requestsPerWarp, Severity& severity) {
-  int reqs = (int) requestsPerWarp;
+string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, std::pair<float,float> requestsPerWarp, Severity& severity) {
+  int reqs = (int) requestsPerWarp.first;
   string prefix = "";
   switch (tpe) {
     case Write:
@@ -191,7 +195,7 @@ string MemCoalesceAnalysis::getWarning(Value *ptr, MemAccess tpe, float requests
   */
 }
 
-float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
+std::pair<float,float> MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
 
   OffsetValPtr ptr_offset = OP->getOrCreateVal(ptr);
   assert(ptr_offset != nullptr);
@@ -199,7 +203,8 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
   vector<OffsetValPtr> all_paths = OP->inContexts(ptr_offset);
   DEBUG(errs() << "Context-sensitive analysis generated " << all_paths.size() << " contexts\n");
 
-  float maxRequests = 0.0f;
+  float maxRequests = 1.0f;
+  float minRequests = 32.0f;
   for(auto path=all_paths.begin(),e=all_paths.end(); path != e; ++path) {
     // Apply some (arbitrary) grid boundaries
     OffsetValPtr gridCtx = OP->inGridContext(*path, 256, 32, 32, 1, 1, 1);
@@ -214,15 +219,16 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
         OP->inThreadContext(simp,0,0,0,0,0,0)), *TD);
 
     if(!threadDiff->isConst()) {
-      DEBUG(errs() << "Cannot generate constant for access. Expression follows.\n");
-      DEBUG(cerr << *threadDiff <<"\n");
+      errs() << "Cannot generate constant for access. Expression follows.\n";
+      cerr << *threadDiff <<"\n";
       auto rnge = threadDiff->constRange();
-      DEBUG(errs() << "Range: " << rnge.first << " to " << rnge.second << "\n");
-      return 32.0; // Branch cannot be analyzed in at least 1 context
+      errs() << "Range: " << rnge.first << " to " << rnge.second << "\n";
+      return make_pair(1.0f,32.0f); // Branch cannot be analyzed in at least 1 context
     }
 
 
     int requestCount = 0;
+    int unknownRequests = 0;
     for(int warp=0; warp<8; warp++) {
       OffsetValPtr warpBase = OP->inThreadContext(simp, warp*32, 0, 0, 0, 0, 0);
       vector<std::pair<long long, long long>> requests;
@@ -231,7 +237,7 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
         OffsetValPtr threadDiff = cancelDiffs(make_shared<BinOpOffsetVal>(warpBase, Sub, threadBase), *TD);
 
         if(!threadDiff->isConst()) {
-          requestCount++;
+          unknownRequests++;
           continue;
         }
         long long offset = threadDiff->constVal().getSExtValue();
@@ -257,14 +263,14 @@ float MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
       requestCount += requests.size();
     }
 
-    if(requestCount/8.0f > maxRequests) {
-      maxRequests = requestCount/8.0f;
-      if(maxRequests > COALESCE_THRES) {
-        return maxRequests; // Might as well short-circuit here
-      }
+    if(requestCount+unknownRequests/8.0f > maxRequests) {
+      maxRequests = (requestCount+unknownRequests)/8.0f;
+    }
+    if(requestCount/8.0f < minRequests) {
+      minRequests = requestCount/8.0f;
     }
   }
-  return maxRequests / 32.0f;
+  return make_pair(minRequests, maxRequests);
 }
 
 char MemCoalesceAnalysis::ID = 0;

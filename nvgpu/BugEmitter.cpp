@@ -39,12 +39,12 @@ bool printline(string filename, int lineNumber) {
   return true;
 }
 
-void gpucheck::emitWarning(string warning, Instruction* i, Severity sev) {
+void gpucheck::emitWarning(string warning, Instruction* i, Severity sev, std::pair<float,float> range) {
   DILocation *Loc = i->getDebugLoc();
 #ifdef MACHINE_READABLE
   if(!Loc)
     return;
-  errs() << Loc->getFilename() << ":" << Loc->getLine() << "\n";
+  errs() << Loc->getFilename() << ":" << Loc->getLine() << "\t" << range.first << "\t" << range.second << "\n";
 #else
   string funcName = demangle(i->getParent()->getParent()->getName().str());
   string sevStr;

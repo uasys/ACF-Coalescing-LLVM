@@ -21,6 +21,6 @@ namespace gpucheck {
     SEV_MED,
     SEV_MAX
   };
-  extern void emitWarning(string warning, Instruction* i, Severity sev);
+  extern void emitWarning(string warning, Instruction* i, Severity sev, std::pair<float,float> range);
 }
 #endif

@@ -23,12 +23,13 @@ namespace gpucheck {
       }
       bool runOnModule(Module &M);
       bool runOnKernel(Function &F);
-      float getDivergence(BranchInst *BI);
+      std::pair<float,float> getDivergence(BranchInst *BI);
     private:
       ThreadDependence *TD;
       OffsetPropagation *OP;
       size_t candidates;
       size_t found;
+      size_t unknown;
   };
 
 }
