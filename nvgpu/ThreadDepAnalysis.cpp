@@ -156,6 +156,13 @@ bool ThreadDependence::isDependent(Value *v, unordered_map<Value *, bool>& taint
     }
   }
 
+  // If this value is an atomic/volatile load, it's tainted
+  if(auto LI=dyn_cast<LoadInst>(v)) {
+    if(!LI->isSimple())  {
+      return true;
+    }
+  }
+
   // Special-case PHI Nodes
   if(auto PHI=dyn_cast<PHINode>(v)) {
     // If the incoming path was selected on a control-flow dependent condition, then we're dependent
