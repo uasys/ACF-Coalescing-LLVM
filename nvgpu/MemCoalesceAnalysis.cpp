@@ -32,14 +32,16 @@ bool MemCoalesceAnalysis::runOnModule(Module &M) {
   OP = &getAnalysis<OffsetPropagation>();
   ASA = &getAnalysis<AddrSpaceAnalysis>();
   // Run over each GPU function
-  candidates = 0;
-  found = 0;
+  samelocation = 0;
+  coalesced = 0;
+  partialcoalesced = 0;
+  noncoalesced = 0;
   unknown = 0;
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     //if(isKernelFunction(*f))
       runOnKernel(*f);
   }
-  errs() << "Candidates: " << candidates << ", Found: " << found << ", Unknown: " << unknown << "\n";
+  errs() << "Samelocation: " << samelocation << "Coalesced: " << coalesced << ", Noncoalesced: "<< noncoalesced << ", Unknown: " << unknown << "\n";
   return false;
 }
 
@@ -79,7 +81,6 @@ void MemCoalesceAnalysis::testStore(StoreInst *S) {
 }
 
 bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
-  candidates++;
   if(!TD->isDependent(ptr))
     return false;
   // Ignore stack allocations
@@ -101,8 +102,12 @@ bool MemCoalesceAnalysis::testAccess(Instruction *i, Value *ptr) {
   // We have a memory access to inspect
   Severity sev;
   emitWarning(getWarning(&*ptr, tpe, requests, sev), &*i, sev, requests);
-  if(requests.first > COALESCE_THRES) {
-    found++;
+  if (requests.second <= 1.1f) {
+    samelocation++;
+  } else if(requests.second <= COALESCE_THRES) {
+    coalesced++;
+  } else if(requests.first > COALESCE_THRES) {
+    noncoalesced++;
     return true;
   } else if(requests.second > COALESCE_THRES) {
     unknown++;
@@ -219,10 +224,10 @@ std::pair<float,float> MemCoalesceAnalysis::requestsPerWarp(Value *ptr) {
         OP->inThreadContext(simp,0,0,0,0,0,0)), *TD);
 
     if(!threadDiff->isConst()) {
-      errs() << "Cannot generate constant for access. Expression follows.\n";
-      cerr << *threadDiff <<"\n";
-      auto rnge = threadDiff->constRange();
-      errs() << "Range: " << rnge.first << " to " << rnge.second << "\n";
+      //errs() << "Cannot generate constant for access. Expression follows.\n";
+      //cerr << *threadDiff <<"\n";
+      //auto rnge = threadDiff->constRange();
+      //errs() << "Range: " << rnge.first << " to " << rnge.second << "\n";
       return make_pair(1.0f,32.0f); // Branch cannot be analyzed in at least 1 context
     }
 

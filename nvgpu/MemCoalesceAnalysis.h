@@ -44,8 +44,10 @@ namespace gpucheck {
       AddrSpaceAnalysis *ASA;
       ThreadDependence *TD;
       OffsetPropagation *OP;
-      size_t candidates;
-      size_t found;
+      size_t samelocation;
+      size_t coalesced;
+      size_t partialcoalesced;
+      size_t noncoalesced;
       size_t unknown;
   };
 

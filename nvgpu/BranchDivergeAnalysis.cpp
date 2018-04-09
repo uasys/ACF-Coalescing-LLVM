@@ -25,15 +25,16 @@ bool BranchDivergeAnalysis::runOnModule(Module &M) {
   TD = &getAnalysis<ThreadDependence>();
   OP = &getAnalysis<OffsetPropagation>();
   // Run over each kernel function
-  candidates = 0;
-  found = 0;
+  nondivergent = 0;
+  partialdivergent = 0;
+  totaldivergent = 0;
   unknown = 0;
   for(auto f=M.begin(), e=M.end(); f!=e; ++f) {
     if(!f->isDeclaration()) {
       runOnKernel(*f);
     }
   }
-  errs() << "Candidates: " << candidates << ", Found: " << found << ", Unknown: " << unknown << "\n";
+  errs() << "Nondivergent: " << nondivergent << ", Partialdivergent: " << partialdivergent << ", Totaldivergent: " << totaldivergent << ", Unknown: " << unknown << "\n";
   return false;
 }
 
@@ -43,15 +44,22 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
     for(auto i=b->begin(),e=b->end(); i!=e; ++i) {
       if(auto B=dyn_cast<BranchInst>(i)) {
         if(B->isConditional() && TD->isDependent(B)) {
-          candidates++;
           // We've found a potentially divergent branch!
           // TODO: Determine if branch is high-cost
           std::pair<float,float> divergence = getDivergence(B);
-          if(divergence.first > DIVERGE_THRESH) {
-            found++;
+          if(divergence.first > 0.9f) {
+            totaldivergent++;
             emitWarning("Divergent Branch Detected", B, SEV_MED, divergence);
             DEBUG(
               errs() << "Found Divergent Branch!! diverge=(" << divergence.first << "-" << divergence.second << ")\n";
+              //B->dump();
+              errs() << "\n\n";
+            );
+          } else if(divergence.first > DIVERGE_THRESH) {
+            partialdivergent++;
+            emitWarning("Possible Divergent Branch Detected", B, SEV_MED, divergence);
+            DEBUG(
+              errs() << "Possible Divergent Branch!! diverge=(" << divergence.first << "-" << divergence.second << ")\n";
               //B->dump();
               errs() << "\n\n";
             );
@@ -64,6 +72,7 @@ bool BranchDivergeAnalysis::runOnKernel(Function &F) {
               errs() << "\n\n";
             );
           } else {
+            nondivergent++;
             emitWarning("Nondivergent Branch Detected", B, SEV_MED, divergence);
             DEBUG(
               errs() << "Nondivergent branch, diverge=(" << divergence.first << "-" << divergence.second << ")\n";

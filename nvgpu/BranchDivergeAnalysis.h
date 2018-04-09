@@ -28,7 +28,9 @@ namespace gpucheck {
       ThreadDependence *TD;
       OffsetPropagation *OP;
       size_t candidates;
-      size_t found;
+      size_t nondivergent;
+      size_t partialdivergent;
+      size_t totaldivergent;
       size_t unknown;
   };
 
